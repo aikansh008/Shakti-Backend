@@ -6,6 +6,10 @@ const PersonalDetailsSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    Email:{
+      type: String,
+      required: true,
+    },
     Preferred_Languages: {
       type: String,
       required: true
