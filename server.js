@@ -41,7 +41,6 @@ app.post('/scrape', async (req, res) => {
   try {
     const data = await scrapeData(targetUrl);
 
-    // Map over the data to include all details (name, location, link, etc.)
     const response = data.map(item => ({
       name: item.name,  // Name of the service provider
       location: item.location,  // Location of the service provider
