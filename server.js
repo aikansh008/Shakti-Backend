@@ -44,7 +44,7 @@ app.post('/scrape', async (req, res) => {
     const response = data.map(item => ({
       name: item.name,  // Name of the service provider
       location: item.location,  // Location of the service provider
-      link: item.link,  // Link to the service provider
+      link: item.link, 
     }));
 
     res.json(response);  // Return the full response with all details
