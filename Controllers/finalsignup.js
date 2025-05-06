@@ -39,6 +39,10 @@ const signup3User = async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
+    if (!user.FinancialDetails) {
+      return res.status(400).json({ message: 'Financial details missing for this session.' });
+    }
+
     // Save PersonalDetails
     const newPersonal = new PersonalDetails({
       personalDetails: user.personalDetails,
@@ -50,15 +54,18 @@ const signup3User = async (req, res) => {
 
     const savedPersonal = await newPersonal.save();
 
-    // Save FinancialDetails
+    console.log("Saved Personal ID:", savedPersonal._id);
+    console.log("Financial Details to be saved:", user.FinancialDetails);
+
+    // Save FinancialDetails with correct userId
     const newFinancial = new FinancialDetails({
       userId: savedPersonal._id,
       ...user.FinancialDetails
     });
 
-    await newFinancial.save();
+    const savedFinancial = await newFinancial.save();
 
-    // Save BusinessIdeaDetails
+    // Save BusinessIdeaDetails with userId
     const newBusinessIdea = new BusinessIdeaDetails({
       sessionId: sessionId,
       userId: savedPersonal._id,
@@ -69,21 +76,14 @@ const signup3User = async (req, res) => {
 
     const savedBusinessIdea = await newBusinessIdea.save();
 
-    // // Save summary to SignupDB (optional summary DB)
-    // const signupSummary = new SignupDB({
-    //   personalDB: user.personalDetails,
-    //   financialDB: user.FinancialDetails,
-    //   businessDB: savedBusinessIdea
-    // });
-
-    // await signupSummary.save();
-
     // Cleanup temp storage
     tempUsers.delete(sessionId);
 
     res.status(201).json({
       message: 'Signup complete!',
-      userId: savedPersonal._id
+      userId: savedPersonal._id,
+      savedFinancialUserId: savedFinancial.userId,
+      savedBusinessIdeaUserId: savedBusinessIdea.userId
     });
 
   } catch (err) {

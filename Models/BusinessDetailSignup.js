@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const BusinessIdeaDetailsSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PersonalDetails',
+    required: true
+  },
   sessionId: {
     type: String,
     required: true

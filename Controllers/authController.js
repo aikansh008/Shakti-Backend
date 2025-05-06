@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const PersonalDetails = require('../Models/PersonalDetailSignup');
-const { rateLimiter } = require('../Middlewares/ratelimiter');
+const loginLimiter  = require('../Middlewares/ratelimiter');
 const tempUsers = require('../tempUserStore');
 
 const loginUser = async (req, res) => {
