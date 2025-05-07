@@ -38,7 +38,27 @@ const unfollowUser = async (req, res) => {
   }
 };
 
+const getSuggestedUsers = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.userId);
+
+    const suggested = await User.find({
+      $and: [
+        { _id: { $ne: currentUser._id } }, // Not current user
+        { _id: { $nin: currentUser.following } }, // Not already followed
+      ],
+    })
+      .select('name email businessIdea') // Optional: select specific fields
+      .limit(10);
+
+    res.json(suggested);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to get suggestions", error });
+  }
+};
+
 module.exports={
   followUser,
-  unfollowUser
+  unfollowUser,
+  getSuggestedUsers
 }
