@@ -3,16 +3,16 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const filterLoansRouter = require('./Controllers/filter');
 const PrivateschemesRouter = require('./Controllers/private_schemes');
-const scrapeData = require('./Controllers/microinvestments'); // Adjust the path if necessary
+const scrapeData = require('./Controllers/microinvestments');
+const authRoutes = require('./Routes/authRoutes'); //  Add this
+
 dotenv.config();
 
-// Initialize Express app
 const app = express();
 
-// Middleware to parse JSON
 app.use(express.json());
 
-// Connect to MongoDB
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -20,14 +20,12 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// General API routes
-const routes = require('./Routes/index');
-app.use('/', routes);
-
-// Route for Gemini loan filtering
-app.use('/filter-loans', filterLoansRouter);  
-// Avoid path collisions
+// Route Setup
+app.use('/auth', authRoutes); //  Handles login, OTP, signup3
+app.use('/filter-loans', filterLoansRouter);
 app.use('/private-schemes', PrivateschemesRouter);
+
+// Scraper Route
 app.post('/scrape', async (req, res) => {
   const { location } = req.body;
   
@@ -35,25 +33,21 @@ app.post('/scrape', async (req, res) => {
     return res.status(400).json({ error: 'Missing location in request body' });
   }
 
-  // Construct the URL dynamically using the location
   const targetUrl = `https://www.justdial.com/${location}/Peer-To-Peer-Investment-Service-Providers/nct-11948937?stype=category_list&redirect=301`;
 
   try {
     const data = await scrapeData(targetUrl);
-
     const response = data.map(item => ({
-      name: item.name,  // Name of the service provider
-      location: item.location,  // Location of the service provider
-      link: item.link, 
+      name: item.name,
+      location: item.location,
+      link: item.link,
     }));
-
-    res.json(response);  // Return the full response with all details
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: 'Scraping failed', details: err.message });
   }
 });
 
-
-// Start the server
+// Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

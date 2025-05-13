@@ -11,7 +11,7 @@ const PersonalDetailsSchema = new mongoose.Schema({
       required: true,
     },
     Preferred_Languages: {
-      type: String,
+      type: [String],
       required: true
     }
   },
