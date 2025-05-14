@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import the correct controller
-const  {loginUser } = require('../Controllers/authController');  // Import from the Controllers directory
+const  {loginUser } = require('../Controllers/authController'); 
 const loginLimiter= require('../Middlewares/ratelimiter');
 const {signupUser}= require('../Controllers/signupController');
 const {signup2User}= require('../Controllers/signupController2');

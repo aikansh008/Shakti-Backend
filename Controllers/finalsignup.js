@@ -1,15 +1,17 @@
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
-const FinancialDetails = require('../Models/FinancialDetailSignup');
 const PersonalDetails = require('../Models/PersonalDetailSignup');
+const FinancialDetails = require('../Models/FinancialDetailSignup');
+const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
 const tempUsers = require('../tempUserStore');
-const nodemailer = require('nodemailer'); // Ensure this is imported
+const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-// Email transporter
+// Configure nodemailer transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'aikanshtiwari007@gmail.com',
-    pass: 'ylfj vbrx tpdb efke' // Use app-specific password
+    pass: 'zuyh rxns ybrr wihh'
   }
 });
 
@@ -22,7 +24,7 @@ const signup3User = async (req, res) => {
       operationalPlan
     } = req.body;
 
-    // Validate required fields
+    // Validate all required fields
     const requiredFields = [
       sessionId,
       ideaDetails?.Business_Name,
@@ -43,10 +45,17 @@ const signup3User = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required!' });
     }
 
-    // Get user from temp store
     const user = tempUsers.get(sessionId);
     if (!user) {
-      return res.status(404).json({ message: 'Session not found' });
+      return res.status(404).json({ message: 'Session not found!' });
+    }
+
+    const email = user.personalDetails.Email;
+
+    // ✅ Check if email already exists
+    const existingUser = await PersonalDetails.findOne({ 'personalDetails.Email': email });
+    if (existingUser) {
+      return res.status(409).json({ message: 'User already exists with this email!' });
     }
 
     // Save personal details
@@ -63,7 +72,7 @@ const signup3User = async (req, res) => {
     // Save financial details
     const newFinancial = new FinancialDetails({
       userId: savedPersonal._id,
-      ...user.FinancialDetails // If you store any in tempUsers
+      ...user.FinancialDetails
     });
     await newFinancial.save();
 
@@ -75,37 +84,43 @@ const signup3User = async (req, res) => {
       financialPlan,
       operationalPlan
     });
-
     await newBusinessIdea.save();
 
-    // Extract email and name from temp user
-    const { Email, Full_Name } = user.personalDetails;
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: savedPersonal._id, email: email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    // Send congratulatory email
+    const { Full_Name } = user.personalDetails;
+
     const mailOptions = {
       from: 'aikanshtiwari007@gmail.com',
-      to: Email,
-      subject: 'Congratulations',
+      to: email,
+      subject: 'Congratulations on Signup!',
       text: `Hi ${Full_Name},\n\nCongratulations! Your signup is complete.\n\nThank you for joining us!\n\nRegards,\nTeam`
     };
 
-    // Delete temp session data
+    // Delete temp session
     tempUsers.delete(sessionId);
 
-    // Send mail and respond once
+    // Send confirmation email
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error('Error sending email:', error);
         return res.status(500).json({
-          message: 'Signup completed, but failed to send confirmation email.',
-          userId: savedPersonal._id
+          message: 'Signup completed, but email failed.',
+          userId: savedPersonal._id,
+          token
         });
       }
 
-      console.log('Confirmation email sent:', info.response);
+      console.log('Email sent:', info.response);
       return res.status(201).json({
         message: 'Signup complete and confirmation email sent!',
-        userId: savedPersonal._id
+        userId: savedPersonal._id,
+        token
       });
     });
 

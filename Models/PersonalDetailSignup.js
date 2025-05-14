@@ -9,6 +9,7 @@ const PersonalDetailsSchema = new mongoose.Schema({
     Email:{
       type: String,
       required: true,
+      unique:true,
     },
     Preferred_Languages: {
       type: [String],

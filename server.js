@@ -4,15 +4,17 @@ const dotenv = require('dotenv');
 const filterLoansRouter = require('./Controllers/filter');
 const PrivateschemesRouter = require('./Controllers/private_schemes');
 const scrapeData = require('./Controllers/microinvestments');
-const authRoutes = require('./Routes/authRoutes'); //  Add this
-
+const authRoutes = require('./Routes/authRoutes');
+const budgetRoutes = require('./Routes/predictRoutes');
+const searchRoutes = require('./Routes/searchRoutes');
+const  videoRoutes = require('./Routes/videosRoutes');
+const pdfRoutes= require('./Routes/pdfsearchbuisness');
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
 
-// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -20,12 +22,13 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// Route Setup
-app.use('/auth', authRoutes); //  Handles login, OTP, signup3
+app.use('/auth', authRoutes); 
 app.use('/filter-loans', filterLoansRouter);
 app.use('/private-schemes', PrivateschemesRouter);
-
-// Scraper Route
+app.use('/predict-budget', budgetRoutes);
+app.use('/search',searchRoutes);
+app.use('/videos',videoRoutes);
+app.use('/pdfsearch',pdfRoutes);
 app.post('/scrape', async (req, res) => {
   const { location } = req.body;
   

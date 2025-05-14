@@ -10,7 +10,7 @@ const communityRoutes= require('./communityAuthRoutes');
 const protectedRoute= require('./protectedusercommunity');
 const postRoutes= require('./postRoutes')
 const follow_unfollowRoutes= require('./follow_unfollowRoutes')
-
+const conversation= require('./conversationRoute')
 
 router.use('/api/signup', signupRoutes);
 router.use('/api/auth', authRoutes);
@@ -31,5 +31,11 @@ router.use('/api/feed',postRoutes);
 //Follow / Unfollow
 router.use('/api/follow',follow_unfollowRoutes );
 router.use('/api/unfollow',follow_unfollowRoutes );
+router.use('/api/suggested', follow_unfollowRoutes );
 
+// Conversation
+router.use('/api/startmessage', conversation);
+router.use('/api/sendmessage', conversation);
+router.use('/api/getmessage', conversation)
+router.use('/api/document', conversation);
 module.exports = router;
