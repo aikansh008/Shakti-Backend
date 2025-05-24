@@ -19,6 +19,10 @@ const BusinessIdeaDetailsSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    Buisness_City:{
+      type: String,
+      required: true
+    },
     Business_Location: {
       type: String,
       required: true

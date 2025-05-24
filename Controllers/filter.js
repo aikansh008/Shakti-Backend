@@ -1,19 +1,28 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const requireAuth = require('../Middlewares/authMiddleware');
+const BuisnessIdeaDeatails = require('../Models/BusinessDetailSignup');
+const PersonalDetails= require('../Models/PersonalDetailSignup');
+const FinancialDetails = require('../Models/FinancialDetailSignup');
+require('dotenv').config();
 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY // replace with your key
+const SERP_API_KEY = process.env.GOOGLE_API_KEY;     // replace with your SerpAPI key
 
-const GEMINI_API_KEY = "AIzaSyCzDxZOQmq2TUSyz7LcFUE_RlLn-YsEeTc"; // replace with your key
-const SERP_API_KEY = 'AIzaSyAdCvC-KDRXBxxmQLVyQmjbamo4HZ8jaDQ"';     // replace with your SerpAPI key
+router.post('/', requireAuth, async (req, res) => {
+  const userID = req.userId;
+  const Business = await  BuisnessIdeaDeatails.findById(userID);
+  const personal = await PersonalDetails.findById(userID);
+  const financial =await FinancialDetails.findById(userID);
+  const totalAssets = financial?.assetDetails?.Gold_Asset_App_Value + financial?.assetDetails?.Land_Asset_App_Value;
 
-router.post('/', async (req, res) => {
-  const userData = req.body;
 
   const prompt = `
 You are a helpful assistant that recommends Indian Government loan schemes.
 
 **Guidelines:**
-- Only suggest **official government loan schemes** hosted on domains like '.gov.in', '.nic.in', and also '${userData.state?.toLowerCase() || 'state'}.gov.in'.
+- Only suggest **official government loan schemes** hosted on domains like '.gov.in', '.nic.in', and also '${Business?.ideaDetails?.Business_Location?.toLowerCase() || 'state'}.gov.in'.
 - Response must be in **strictly valid JSON format** — no markdown, no explanations, no triple backticks.
 - Do not include any text or headings outside the JSON array.
 - All fields must be enclosed in double quotes.
@@ -22,15 +31,15 @@ You are a helpful assistant that recommends Indian Government loan schemes.
 
 
 **User Details:**
-- Gender: ${userData.gender}
-- Business Type: ${userData.businessType}
-- Location: ${userData.location || 'not specified'}
-- Age: ${userData.age || 'not specified'}
-- Education: ${userData.education || 'not specified'}
-- State: ${userData.state || 'not specified'}
-- Total Assets value: ${userData.totalAssetsValue || 'not specified'}
-- Caste: ${userData.caste || 'not specified'}
-- Previous loan history: ${userData.previousLoanHistory || 'not specified'}
+- Gender: ${personal?.personalDetails?.gender || 'male'}
+- Business Type: ${Business?.ideaDetails?.Business_Sector || 'not specified'}
+- Location: ${Business?.ideaDetails?.Business_Location || 'not specified'}
+- Age: ${personal?.personalDetails?.age || 'not specified'}
+- Education: ${personal?.professionalDetails?.Educational_Qualifications || 'not specified'}
+- State: ${Business?.ideaDetails?.Business_Location || 'not specified'}
+- Total Assets value: ${totalAssets || 'not specified'}
+- Require_Loan: ${Business?.financialPlan.Estimated_Startup_Cost|| 'not specified'}
+- Previous loan history: ${financial?.existingloanDetails.Total_Loan_Amount || 'not specified'}
 
 **Return Format:**
 [
@@ -51,7 +60,7 @@ You are a helpful assistant that recommends Indian Government loan schemes.
       "Eligibility point 1",
       "Eligibility point 2"
     ],
-    "link": "https://example2.${userData.state?.toLowerCase() || 'state'}.gov.in"
+    "link": "https://example2.${Business?.ideaDetails?.Business_Location?.toLowerCase() || 'state'}.gov.in"
   }
 ]
 `;

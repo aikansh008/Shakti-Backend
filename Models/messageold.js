@@ -15,7 +15,7 @@ const messageSchema = new mongoose.Schema({
     type: String,
   },
   file: {
-    type: String, // file/image/document URL if any
+    type: String, 
   },
   messageType: {
     type: String,
@@ -24,4 +24,4 @@ const messageSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model('Messageold', messageSchema);

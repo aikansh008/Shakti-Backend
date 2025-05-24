@@ -1,48 +1,50 @@
-const tempUsers = require('../tempUserStore');
+const User = require('../Models/BusinessDetailSignup'); // your User mongoose model
 
 const signup2User = async (req, res) => {
   try {
-    const { sessionId, incomeDetails, assetDetails, existingloanDetails } = req.body;
+    const userId = req.userId;  // assume this comes from JWT middleware (decoded token)
+    const { incomeDetails, assetDetails, existingloanDetails } = req.body;
+
     const {
       Primary_Monthly_Income,
       Additional_Monthly_Income,
-    } = incomeDetails;
+    } = incomeDetails || {};
 
     const {
       Gold_Asset_amount,
       Gold_Asset_App_Value,
       Land_Asset_Area,
       Land_Asset_App_Value,
-    } = assetDetails;
+    } = assetDetails || {};
 
-    const { Monthly_Payment } = existingloanDetails;
+    const { Monthly_Payment , Total_Loan_Amount } = existingloanDetails || {};
 
-    // Check if all fields are present
+    // Validate required fields
     if (
-      !sessionId ||
       !Primary_Monthly_Income ||
       !Additional_Monthly_Income ||
       !Gold_Asset_amount ||
       !Gold_Asset_App_Value ||
       !Land_Asset_Area ||
       !Land_Asset_App_Value ||
-      !Monthly_Payment
+      !Monthly_Payment ||
+      !Total_Loan_Amount
     ) {
       return res.status(400).json({ message: 'All fields are required!' });
     }
 
-    // Get the user from the temp store using sessionId
-    const user = tempUsers.get(sessionId);
+    // Find the user by ID
+    const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'Session not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Make sure the form 1 data exists
+    // Optional: Check if first form data exists (assuming stored in user doc)
     if (!user.personalDetails || !user.professionalDetails || !user.passwordDetails) {
       return res.status(400).json({ message: 'Incomplete form 1 data. Start over.' });
     }
 
-    // Store FinancialDetails in the user object
+    // Update financial details
     user.FinancialDetails = {
       incomeDetails: {
         Primary_Monthly_Income,
@@ -56,12 +58,14 @@ const signup2User = async (req, res) => {
       },
       existingloanDetails: {
         Monthly_Payment,
+        Total_Loan_Amount,
       },
     };
 
-    // Save updated user to tempUsers
-    tempUsers.set(sessionId, user);
-    res.status(200).json({ message: 'Form 2 saved' });
+    // Save updated user
+    await user.save();
+
+    res.status(200).json({ message: 'Form 2 saved successfully' });
   } catch (err) {
     console.error('Signup2 Error:', err);
     res.status(500).json({ message: 'Server error!' });

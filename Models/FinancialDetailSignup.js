@@ -38,7 +38,11 @@ const FinancialDetailsSchema= new mongoose.Schema({
     Monthly_Payment:{
       type: Number,
       required: true
-    }
+    },
+    Total_Loan_Amount:{
+      type: Number,
+      required: true
+    },
   }
 }, {timestamps:true});
 

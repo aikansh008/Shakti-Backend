@@ -4,17 +4,22 @@ const PersonalDetailsSchema = new mongoose.Schema({
   personalDetails: {
     Full_Name: {
       type: String,
-      required: true
     },
     Email:{
       type: String,
-      required: true,
       unique:true,
     },
     Preferred_Languages: {
       type: [String],
-      required: true
-    }
+     
+    },
+    age :{
+      type: Number,
+    },
+     gender :{
+       type: String,
+    },
+   
   },
 
   professionalDetails: {

@@ -24,33 +24,45 @@ router.get('/', requireAuth, async (req, res) => {
 
   try {
     const user = await PersonalDetails.findById(userId);
-    const lang = user.personalDetails?.Preferred_Languages[0] || 'en';
+    
+    // Validate and sanitize the language code
+    let lang = 'en';
+    if (
+      user?.personalDetails?.Preferred_Languages?.length > 0 &&
+      /^[a-z]{2}$/.test(user.personalDetails.Preferred_Languages[0].toLowerCase())
+    ) {
+      lang = user.personalDetails.Preferred_Languages[0].toLowerCase();
+    }
 
     const businessData = await BusinessIdeaDetails.findOne({ userId });
 
     if (
       !businessData ||
       !businessData.ideaDetails ||
-      !businessData.ideaDetails.Business_Sector
+      !businessData.ideaDetails.Business_Sector ||
+      !businessData.ideaDetails.Business_Location
     ) {
-      return res.status(404).json({ error: 'Business sector not found for this user' });
+      return res.status(404).json({ error: 'Business details not found for this user' });
     }
 
     const businessSector = businessData.ideaDetails.Business_Sector;
 
-    // Perform YouTube Search
-    const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-     params: {
-  key: YOUTUBE_API_KEY,
-  part: 'snippet',
-  q: `${businessSector} in India`,
-  type: 'video',
-  regionCode: 'IN',
-  relevanceLanguage: lang,
-  maxResults: 10
-}
+    // Build query params
+    const params = {
+      key: YOUTUBE_API_KEY,
+      part: 'snippet',
+      q: `${businessSector} in India`,
+      type: 'video',
+      regionCode: 'IN',
+      maxResults: 10,
+    };
 
-    });
+    // Only add relevanceLanguage if valid
+    if (lang) {
+      params.relevanceLanguage = lang;
+    }
+
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/search', { params });
 
     const videos = response.data.items.map(item => ({
       title: item.snippet.title,
@@ -58,13 +70,16 @@ router.get('/', requireAuth, async (req, res) => {
       videoUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
       thumbnail: item.snippet.thumbnails.medium.url,
       channelTitle: item.snippet.channelTitle,
-      publishedAt: item.snippet.publishedAt
+      publishedAt: item.snippet.publishedAt,
     }));
 
     res.json(videos);
   } catch (error) {
-    console.error('YouTube Search Error:', error.message);
-    res.status(500).json({ error: 'Error fetching YouTube results' });
+    console.error('YouTube Search Error:', error.response?.data || error.message);
+    res.status(500).json({
+      error: 'Error fetching YouTube results',
+      details: error.response?.data || error.message
+    });
   }
 });
 

@@ -30,6 +30,7 @@ const signup3User = async (req, res) => {
       ideaDetails?.Business_Name,
       ideaDetails?.Business_Sector,
       ideaDetails?.Business_Location,
+      ideaDetails?.Buisness_City,
       ideaDetails?.Idea_Description,
       ideaDetails?.Target_Market,
       ideaDetails?.Unique_Selling_Proposition,

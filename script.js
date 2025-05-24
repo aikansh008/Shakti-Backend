@@ -1,13 +1,13 @@
 const puppeteer = require('puppeteer');
 
-async function scrapeData() {
+async function scrapeData(url) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   
   const results = [];
 
   try {
-    await page.goto('https://www.justdial.com/Ghaziabad/Peer-To-Peer-Investment-Service-Providers-in-Ghaziabad-Sector-12/nct-11948937', {
+    await page.goto(url, {
       waitUntil: 'domcontentloaded',
     });
 
