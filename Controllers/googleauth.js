@@ -17,38 +17,21 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails[0].value;
+    const name = profile.displayName || '';
 
-    // Check if user already exists
-    let user = await PersonalDetails.findOne({ 'personalDetails.Email': email });
+    // ✅ Don't fetch or save user in DB — just pass basic info forward
+    const user = {
+      name,
+      email,
+      googleId: profile.id
+    };
 
-    if (!user) {
-      // Create new user with mandatory fields filled with placeholder/defaults
-      user = new PersonalDetails({
-        personalDetails: {
-          Full_Name: profile.displayName || '',
-          Email: email,
-          Preferred_Languages: [],
-          age: null,
-          gender: '',
-        },
-        professionalDetails: {
-          Business_Experience: 'Not specified',   // required field
-          Educational_Qualifications: 'Not specified', // required field
-        },
-        passwordDetails: {
-          Password: 'google-oauth'  // dummy password, since Google login is used
-        }
-      });
-
-      await user.save();
-    }
-
-    // Return user for login success
     return done(null, user);
   } catch (err) {
     return done(err, null);
   }
 }));
+
 
 
 router.use(passport.initialize());
@@ -62,10 +45,16 @@ router.get('/google/callback', (req, res, next) => {
     if (err) return res.status(500).json({ message: 'Auth error' });
 
     if (!user) {
-      return res.status(400).json({ message: info.message || 'Authentication failed' });
+      return res.status(400).json({ message: info?.message || 'Authentication failed' });
     }
 
-    const token = generateToken(user);
+    // ✅ Generate token with only minimal Google info
+    const token = generateToken({
+      email: user.email,
+      name: user.name,
+      googleId: user.googleId
+    });
+
     return res.status(200).json({ token, user });
   })(req, res, next);
 });

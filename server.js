@@ -7,6 +7,8 @@ const cors = require('cors');
 const Message = require('./Models/messages');
 const googleauth = require('./Controllers/googleauth');
 const completeSignupRoute = require('./Routes/complete_signup');
+const completeSignupRoute2= require('./Routes/complete_signup2');
+const completeSignupRoute3= require('./Routes/complete_signup3');
 const signup2google = require('./Controllers/signupControllergoogle2')
 const { signup3googleUser } = require("./Controllers/finalgooglesignup")
 const requireAuth = require('./Middlewares/authMiddleware')
@@ -118,6 +120,8 @@ io.on('connection', (socket) => {
 // ---------------- API ROUTES ----------------
 app.use('/googleauth', googleauth);
 app.use('/complete', completeSignupRoute);
+app.use('/cpmplete2',completeSignupRoute2);
+app.use('/complete3',completeSignupRoute3);
 const filterLoansRouter = require('./Controllers/filter');
 const PrivateschemesRouter = require('./Controllers/private_schemes');
 const scrapeData = require('./Controllers/microinvestments');

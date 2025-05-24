@@ -12,8 +12,9 @@ const requireAuth = (req, res, next) => {
   const token = authorization.split(" ")[1];
 
   try {
-    const { userId } = jwt.verify(token, JWT_SECRET);
-    req.userId = userId;
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    req.user = decoded; // ✅ Attach full user info like email, name, etc.
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid token" });
