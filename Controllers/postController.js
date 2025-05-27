@@ -1,5 +1,5 @@
-const Post= require('../Models/PostSchema');
-const User = require('../Models/communityUser');
+const Post= require('../Models/community/PostSchema');
+const User = require('../Models/community/communityUser');
 
 
 const createPost= async(req,res)=>{

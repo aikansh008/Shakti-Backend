@@ -4,13 +4,11 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const Message = require('./Models/messages');
+const Message = require('./Models/community/messages');
 const googleauth = require('./Controllers/googleauth');
 const completeSignupRoute = require('./Routes/complete_signup');
 const completeSignupRoute2= require('./Routes/complete_signup2');
 const completeSignupRoute3= require('./Routes/complete_signup3');
-const signup2google = require('./Controllers/signupControllergoogle2')
-const { signup3googleUser } = require("./Controllers/finalgooglesignup")
 const requireAuth = require('./Middlewares/authMiddleware')
 
 // Load environment variables
@@ -120,7 +118,7 @@ io.on('connection', (socket) => {
 // ---------------- API ROUTES ----------------
 app.use('/googleauth', googleauth);
 app.use('/complete', completeSignupRoute);
-app.use('/cpmplete2',completeSignupRoute2);
+app.use('/complete2',completeSignupRoute2);
 app.use('/complete3',completeSignupRoute3);
 const filterLoansRouter = require('./Controllers/filter');
 const PrivateschemesRouter = require('./Controllers/private_schemes');
@@ -132,10 +130,10 @@ const videoRoutes = require('./Routes/videosRoutes');
 const pdfRoutes = require('./Routes/pdfsearchbuisness');
 const communityRoutes = require('./Routes/communityAuthRoutes');
 const indexRoutes = require('./Routes/index');
-const BusinessDetailSignup = require('./Models/BusinessDetailSignup');
+const BusinessDetailSignup = require('./Models/User/BusinessDetailSignup');
+const getuser = require('./Routes/user');
 
 // API Routes
-app.get('/', (req, res) => res.send('Welcome to the Micro Investment API'));
 app.use('/auth', authRoutes);
 app.use('/filter-loans', filterLoansRouter);
 app.use('/private-schemes', PrivateschemesRouter);
@@ -145,6 +143,7 @@ app.use('/videos', videoRoutes);
 app.use('/pdfsearch', pdfRoutes);
 app.use('/community', communityRoutes);
 app.use('/', indexRoutes);
+app.use('/user' ,getuser);
 
 // Scraping route
 app.post('/scrape', requireAuth, async (req, res) => {

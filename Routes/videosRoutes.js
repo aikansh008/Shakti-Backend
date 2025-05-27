@@ -8,8 +8,8 @@ require('dotenv').config();
 
 // Import models and middleware
 const requireAuth = require('../Middlewares/authMiddleware');
-const PersonalDetails = require('../Models/PersonalDetailSignup');
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
+const PersonalDetails = require('../Models/User/PersonalDetailSignup');
+const BusinessIdeaDetails = require('../Models/User/BusinessDetailSignup');
 
 // Load from environment variables
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;

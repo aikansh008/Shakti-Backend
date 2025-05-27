@@ -1,5 +1,5 @@
 const loginLimiter = require('../Middlewares/ratelimiter');
-const MonthlyRevenue = require('../models/MonthlyRevenue');
+const MonthlyRevenue = require('../Models/Budget/MonthlyRevenue');
 
 const createMonthlyRevenue = async (req, res) => {
   try {

@@ -1,7 +1,7 @@
 const expressFinal = require('express');
-const FinancialDetails = require('../Models/FinancialDetailSignup');
-const PersonalDetailSignup = require('../Models/PersonalDetailSignup');
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
+const FinancialDetails = require('../Models/User/FinancialDetailSignup');
+const PersonalDetailSignup = require('../Models/User/PersonalDetailSignup');
+const BusinessIdeaDetails = require('../Models/User/BusinessDetailSignup');
 const tempUsersFinal = require('../tempUserStore');
 
 const finalRouter = expressFinal.Router();

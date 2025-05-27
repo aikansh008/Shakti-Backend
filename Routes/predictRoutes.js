@@ -3,18 +3,18 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const requireAuth = require('../Middlewares/authMiddleware');
 
-const MonthlyRevenue = require('../models/MonthlyRevenue');
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
+const MonthlyRevenue = require('../Models/Budget/MonthlyRevenue');
+const BusinessIdeaDetails = require('../Models/User/BusinessDetailSignup');
 
 // Budget prediction functions
-const { predictrestaurantBudget } = require('../Models/restaurant');
-const { predictretailBudget } = require('../Models/retailbudget');
-const { predicttravelBudget } = require('../Models/travel');
-const { predicthealthBudget } = require('../Models/healthcare');
-const { predictlaundryBudget } = require('../Models/laundary');
-const { predictbeautyBudget } = require('../Models/beauty');
-const { predictmanufacturingBudget }= require('../Models/manufacturing');
-const { predictDairyBudget } = require('../Models/dairybudget')
+const { predictrestaurantBudget } = require('../Models/Budget/restaurant');
+const { predictretailBudget } = require('../Models/Budget/retailbudget');
+const { predicttravelBudget } = require('../Models/Budget/travel');
+const { predicthealthBudget } = require('../Models/Budget/healthcare');
+const { predictlaundryBudget } = require('../Models/Budget/laundary');
+const { predictbeautyBudget } = require('../Models/Budget/beauty');
+const { predictmanufacturingBudget }= require('../Models/Budget/manufacturing');
+const { predictDairyBudget } = require('../Models/Budget/dairybudget')
 
 // Helper function
 async function calculateProfits(userId) {

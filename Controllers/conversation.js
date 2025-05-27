@@ -1,6 +1,6 @@
 // POST /api/message/conversation
-const Conversation = require('../Models/conversation');
-const Message = require('../Models/messageold');
+const Conversation = require('../Models/community/conversation');
+const Message = require('../Models/community/messageold');
 
 
 

@@ -1,62 +1,34 @@
 const express = require('express');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const { OAuth2Client } = require('google-auth-library');
 const generateToken = require('../Middlewares/generatejwt');
-const PersonalDetails = require('../Models/PersonalDetailSignup');
-const dotenv = require('dotenv');
-
-dotenv.config();
-
 const router = express.Router();
 
-// Passport strategy without OTP logic
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: "http://localhost:5000/googleauth/google/callback",
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const email = profile.emails[0].value;
-    const name = profile.displayName || '';
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-    // ✅ Don't fetch or save user in DB — just pass basic info forward
-    const user = {
-      name,
-      email,
-      googleId: profile.id
-    };
+// POST /api/google/token
+router.post('/token', async (req, res) => {
+  const { idToken } = req.body;
 
-    return done(null, user);
-  } catch (err) {
-    return done(err, null);
+  if (!idToken) {
+    return res.status(400).json({ message: 'Missing ID token' });
   }
-}));
 
-
-
-router.use(passport.initialize());
-
-// Step 1: Trigger Google OAuth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-// Step 2: Handle callback
-router.get('/google/callback', (req, res, next) => {
-  passport.authenticate('google', { session: false }, (err, user, info) => {
-    if (err) return res.status(500).json({ message: 'Auth error' });
-
-    if (!user) {
-      return res.status(400).json({ message: info?.message || 'Authentication failed' });
-    }
-
-    // ✅ Generate token with only minimal Google info
-    const token = generateToken({
-      email: user.email,
-      name: user.name,
-      googleId: user.googleId
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
-    return res.status(200).json({ token, user });
-  })(req, res, next);
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId } = payload;
+
+    // ⚠ Do NOT save to DB here.
+    const token = generateToken({ email, name, googleId });
+
+    res.status(200).json({ token });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid Google token', error: error.message });
+  }
 });
 
 module.exports = router;

@@ -1,5 +1,5 @@
 // already required
-const User = require('../Models/communityUser');
+const User = require('../Models/community/communityUser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 

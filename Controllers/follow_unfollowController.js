@@ -1,6 +1,6 @@
 // controllers/userController.js
 
-const User = require('../Models/communityUser');
+const User = require('../Models/community/communityUser');
 
 const followUser = async (req, res) => {
   const { userId } = req;  // logged-in user

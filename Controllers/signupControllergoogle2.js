@@ -1,4 +1,4 @@
-const PersonalDetails = require("../Models/PersonalDetailSignup");
+const PersonalDetails = require("../Models/User/PersonalDetailSignup");
 
 const signup2Usergoogle = async (req, res) => {
   try {

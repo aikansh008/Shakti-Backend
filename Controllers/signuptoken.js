@@ -1,6 +1,6 @@
-const PersonalDetails = require('../Models/PersonalDetailSignup');
-const UserCommunity = require('../Models/communityUser');
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
+const PersonalDetails = require('../Models/User/PersonalDetailSignup');
+const UserCommunity = require('../Models/community/communityUser');
+const BusinessIdeaDetails = require('../Models/User/BusinessDetailSignup');
 
 const createCommunityUserFromToken = async (req, res) => {
   try {

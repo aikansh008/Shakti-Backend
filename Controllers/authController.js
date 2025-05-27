@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const PersonalDetails = require('../Models/PersonalDetailSignup');
+const PersonalDetails = require('../Models/User/PersonalDetailSignup');
 const generatejwt = require('../Middlewares/generatejwt')
 
 const loginUser = async (req, res) => {

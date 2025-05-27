@@ -1,4 +1,4 @@
-const FinancialDetails = require('../Models/FinancialDetailSignup');
+const FinancialDetails = require('../Models/User/FinancialDetailSignup');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 

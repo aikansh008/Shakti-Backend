@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const PersonalDetails = require('../Models/PersonalDetailSignup');
+const PersonalDetails = require('../Models/User/PersonalDetailSignup');
 const tempUsers = require("../tempUserStore");
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');  // Import Nodemailer

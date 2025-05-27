@@ -2,9 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const requireAuth=  require('../Middlewares/authMiddleware');
-const BuisnessIdeaDeatails = require('../Models/BusinessDetailSignup');
-const PersonalDetails= require('../Models/PersonalDetailSignup');
-const FinancialDetails = require('../Models/FinancialDetailSignup');
+const BuisnessIdeaDeatails = require('../Models/User/BusinessDetailSignup');
+const PersonalDetails= require('../Models/User/PersonalDetailSignup');
+const FinancialDetails = require('../Models/User/FinancialDetailSignup');
 require('dotenv').config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;

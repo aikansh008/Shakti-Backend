@@ -1,7 +1,7 @@
-const PersonalDetails = require('../Models/PersonalDetailSignup');
-const FinancialDetails = require('../Models/FinancialDetailSignup');
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
-const MonthlyRevenue = require('../models/MonthlyRevenue');
+const PersonalDetails = require('../Models/User/PersonalDetailSignup');
+const FinancialDetails = require('../Models/User/FinancialDetailSignup');
+const BusinessIdeaDetails = require('../Models/User/BusinessDetailSignup');
+const MonthlyRevenue = require('../Models/Budget/MonthlyRevenue');
 
 const getFullUser = async (req, res) => {
   try {

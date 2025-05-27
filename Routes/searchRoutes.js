@@ -2,8 +2,8 @@ const express = require('express');
 const axios = require('axios');
 const mongoose = require('mongoose');
 const requireAuth = require('../Middlewares/authMiddleware'); // import middleware
-const BusinessIdeaDetails = require('../Models/BusinessDetailSignup');
-const PersonalDetails = require('../Models/PersonalDetailSignup');
+const BusinessIdeaDetails = require('../Models/User/BusinessDetailSignup');
+const PersonalDetails = require('../Models/User/PersonalDetailSignup');
 
 const router = express.Router();
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;

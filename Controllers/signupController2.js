@@ -1,50 +1,53 @@
-const User = require('../Models/BusinessDetailSignup'); // your User mongoose model
+const tempUsers = require('../tempUserStore');
 
 const signup2User = async (req, res) => {
   try {
-    const userId = req.userId;  // assume this comes from JWT middleware (decoded token)
-    const { incomeDetails, assetDetails, existingloanDetails } = req.body;
+    const { sessionId, incomeDetails, assetDetails, existingloanDetails } = req.body;
 
     const {
       Primary_Monthly_Income,
       Additional_Monthly_Income,
-    } = incomeDetails || {};
+    } = incomeDetails;
 
     const {
       Gold_Asset_amount,
       Gold_Asset_App_Value,
       Land_Asset_Area,
       Land_Asset_App_Value,
-    } = assetDetails || {};
+    } = assetDetails;
 
-    const { Monthly_Payment , Total_Loan_Amount } = existingloanDetails || {};
+    const {
+      Monthly_Payment,
+      Total_Loan_Amount
+    } = existingloanDetails;
 
-    // Validate required fields
+    // Check if all fields are present
     if (
-      !Primary_Monthly_Income ||
-      !Additional_Monthly_Income ||
-      !Gold_Asset_amount ||
-      !Gold_Asset_App_Value ||
-      !Land_Asset_Area ||
-      !Land_Asset_App_Value ||
-      !Monthly_Payment ||
-      !Total_Loan_Amount
+      !sessionId ||
+      Primary_Monthly_Income === undefined ||
+      Additional_Monthly_Income === undefined ||
+      Gold_Asset_amount === undefined ||
+      Gold_Asset_App_Value === undefined ||
+      Land_Asset_Area === undefined ||
+      Land_Asset_App_Value === undefined ||
+      Monthly_Payment === undefined ||
+      Total_Loan_Amount === undefined
     ) {
       return res.status(400).json({ message: 'All fields are required!' });
     }
 
-    // Find the user by ID
-    const user = await User.findById(userId);
+    // Get the user from the temp store using sessionId
+    const user = tempUsers.get(sessionId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Session not found' });
     }
 
-    // Optional: Check if first form data exists (assuming stored in user doc)
+    // Make sure the form 1 data exists
     if (!user.personalDetails || !user.professionalDetails || !user.passwordDetails) {
       return res.status(400).json({ message: 'Incomplete form 1 data. Start over.' });
     }
 
-    // Update financial details
+    // Store FinancialDetails in the user object
     user.FinancialDetails = {
       incomeDetails: {
         Primary_Monthly_Income,
@@ -58,14 +61,14 @@ const signup2User = async (req, res) => {
       },
       existingloanDetails: {
         Monthly_Payment,
-        Total_Loan_Amount,
+        Total_Loan_Amount
       },
     };
 
-    // Save updated user
-    await user.save();
+    // Save updated user to tempUsers
+    tempUsers.set(sessionId, user);
+    res.status(200).json({ message: 'Form 2 saved' });
 
-    res.status(200).json({ message: 'Form 2 saved successfully' });
   } catch (err) {
     console.error('Signup2 Error:', err);
     res.status(500).json({ message: 'Server error!' });
