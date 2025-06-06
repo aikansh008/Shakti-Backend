@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One-to-One Chat</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input, button { padding: 8px; margin: 5px; }
+    #chatBox { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-top: 10px; }
+    .typing { font-style: italic; color: gray; margin-top: 5px; }
+    .seen-status { font-size: 12px; color: green; text-align: right; }
+  </style>
+</head>
+<body>
+  <h2>🟢 One-to-One Chat App</h2>
+
+  <label>JWT Token:</label><br />
+  <input type="text" id="jwt" size="80" placeholder="Enter your JWT token" />
+  <button onclick="connectSocket()">Connect</button>
+  <div id="connectionStatus"></div>
+
+  <div style="margin-top: 20px;">
+    <label>Recipient User ID:</label><br />
+    <input type="text" id="recipientId" size="50" placeholder="Enter recipient user ID" /><br />
+
+    <label>Message:</label><br />
+    <input type="text" id="messageInput" size="50" placeholder="Enter your message" oninput="sendTyping()" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <div id="chatBox"></div>
+  <div class="typing" id="typingStatus"></div>
+
+  <script>
+    let socket;
+
+    function connectSocket() {
+      const token = document.getElementById('jwt').value;
+      if (!token) {
+        alert("Please enter a JWT token");
+        return;
+      }
+
+      socket = io('http://localhost:5000', {
+        auth: { token },
+      });
+
+      socket.on('connect', () => {
+        document.getElementById('connectionStatus').innerHTML = '✅ Connected to server';
+        console.log('Connected to socket server');
+      });
+
+      socket.on('connect_error', (err) => {
+        document.getElementById('connectionStatus').innerHTML = '❌ Connection failed: ' + err.message;
+        console.error('Connection error:', err.message);
+      });
+
+      socket.on('private-message', (data) => {
+        const chatBox = document.getElementById('chatBox');
+        const message = `
+          <div><b>${data.from}:</b> ${data.message}</div>
+          <div class="seen-status">Seen</div>
+        `;
+        chatBox.innerHTML += message;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Send "seen" event to server
+        socket.emit('message-seen', { messageId: data.messageId });
+      });
+
+      socket.on('user-typing', ({ from }) => {
+        const typingStatus = document.getElementById('typingStatus');
+        typingStatus.innerText = `✍️ ${from} is typing...`;
+        clearTimeout(typingStatus.timeout);
+        typingStatus.timeout = setTimeout(() => {
+          typingStatus.innerText = '';
+        }, 1000);
+      });
+
+      socket.on('message-seen-confirmation', ({ messageId }) => {
+        const status = document.querySelector(`#seen-${messageId}`);
+        if (status) status.innerText = "✅ Seen";
+      });
+    }
+
+    function sendMessage() {
+      const toUserId = document.getElementById('recipientId').value;
+      const message = document.getElementById('messageInput').value;
+
+      if (!socket || !socket.connected) {
+        alert('You are not connected. Please enter JWT and click connect.');
+        return;
+      }
+
+      if (!toUserId || !message) {
+        alert('Please enter both recipient ID and message.');
+        return;
+      }
+
+      const tempId = Date.now(); // Temporary ID to track the message
+      socket.emit('private-message', { toUserId, message });
+
+      const chatBox = document.getElementById('chatBox');
+      const selfMsg = `
+        <div style="text-align:right;">
+          <b>You:</b> ${message}
+          <div class="seen-status" id="seen-${tempId}">Sent</div>
+        </div>
+      `;
+      chatBox.innerHTML += selfMsg;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      document.getElementById('messageInput').value = '';
+    }
+
+    function sendTyping() {
+      const toUserId = document.getElementById('recipientId').value;
+      if (socket && socket.connected && toUserId) {
+        socket.emit('typing', { toUserId });
+      }
+    }
+  </script>
+</body>
+</html>
