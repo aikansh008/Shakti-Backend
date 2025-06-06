@@ -10,8 +10,8 @@ require('dotenv').config();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-   user: 'shakti1374@gmail.com',
-    pass: 'zuyh rxns ybrr wihh' 
+    user: 'shakti1374@gmail.com',
+    pass: 'zuyh rxns ybrr wihh' // Ideally store this securely in env variables
   }
 });
 
@@ -25,11 +25,14 @@ const signup3User = async (req, res) => {
     } = req.body;
 
     // Check required fields from final step
+    // Note: in schema, the field is "Buisness_Location" (typo), but here you check "Business_Location"
+    // To fix mismatch, check for the typo as in schema:
     const requiredFields = [
       sessionId,
       ideaDetails?.Business_Name,
       ideaDetails?.Business_Sector,
-      ideaDetails?.Business_Location,
+      ideaDetails?.Buisness_Location,       // Use the typo field name here
+      ideaDetails?.Business_City,
       ideaDetails?.Idea_Description,
       ideaDetails?.Target_Market,
       ideaDetails?.Unique_Selling_Proposition,
@@ -45,7 +48,7 @@ const signup3User = async (req, res) => {
       return res.status(400).json({ message: 'All business, financial, and operational fields are required!' });
     }
 
-    // ✅ Make sure temp data from previous steps is present
+    // Ensure temp data from previous steps is present
     const user = tempUsers.get(sessionId);
     if (
       !user ||
@@ -59,26 +62,28 @@ const signup3User = async (req, res) => {
 
     const email = user.personalDetails.Email;
 
+    // Check if user already exists
     const existingUser = await PersonalDetails.findOne({ 'personalDetails.Email': email });
     if (existingUser) {
       return res.status(409).json({ message: 'User already exists with this email!' });
     }
 
-    // ✅ Only now create the user in the DB
+    // Create and save personal details
     const newPersonal = new PersonalDetails({
       personalDetails: user.personalDetails,
       professionalDetails: user.professionalDetails,
       passwordDetails: { Password: user.passwordDetails.HashedPassword }
     });
-
     const savedPersonal = await newPersonal.save();
 
+    // Save financial details
     const newFinancial = new FinancialDetails({
       userId: savedPersonal._id,
       ...user.FinancialDetails
     });
     await newFinancial.save();
 
+    // Save business idea details
     const newBusinessIdea = new BusinessIdeaDetails({
       sessionId,
       userId: savedPersonal._id,
@@ -88,7 +93,7 @@ const signup3User = async (req, res) => {
     });
     await newBusinessIdea.save();
 
-    // ✅ Send confirmation email
+    // Generate JWT token
     const token = jwt.sign(
       { userId: savedPersonal._id, email },
       process.env.JWT_SECRET,
@@ -97,6 +102,7 @@ const signup3User = async (req, res) => {
 
     const { Full_Name } = user.personalDetails;
 
+    // Prepare confirmation email
     const mailOptions = {
       from: 'shakti1374@gmail.com',
       to: email,
@@ -104,14 +110,15 @@ const signup3User = async (req, res) => {
       text: `Hi ${Full_Name},\n\nCongratulations! Your signup is complete.\n\nThank you for joining us!\n\nRegards,\nTeam`
     };
 
-    // ✅ Clear temp user
+    // Clear temp user data
     tempUsers.delete(sessionId);
 
+    // Send confirmation email
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error('Email Error:', error);
         return res.status(500).json({
-          message: 'Signup complete, but email failed.',
+          message: 'Signup complete, but confirmation email failed to send.',
           userId: savedPersonal._id,
           token
         });

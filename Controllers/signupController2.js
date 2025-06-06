@@ -4,71 +4,73 @@ const signup2User = async (req, res) => {
   try {
     const { sessionId, incomeDetails, assetDetails, existingloanDetails } = req.body;
 
-    const {
-      Primary_Monthly_Income,
-      Additional_Monthly_Income,
-    } = incomeDetails;
-
-    const {
-      Gold_Asset_amount,
-      Gold_Asset_App_Value,
-      Land_Asset_Area,
-      Land_Asset_App_Value,
-    } = assetDetails;
-
-    const {
-      Monthly_Payment,
-      Total_Loan_Amount
-    } = existingloanDetails;
-
-    // Check if all fields are present
-    if (
-      !sessionId ||
-      Primary_Monthly_Income === undefined ||
-      Additional_Monthly_Income === undefined ||
-      Gold_Asset_amount === undefined ||
-      Gold_Asset_App_Value === undefined ||
-      Land_Asset_Area === undefined ||
-      Land_Asset_App_Value === undefined ||
-      Monthly_Payment === undefined ||
-      Total_Loan_Amount === undefined
-    ) {
-      return res.status(400).json({ message: 'All fields are required!' });
+    if (!sessionId) {
+      return res.status(400).json({ message: 'Session ID is required' });
     }
 
-    // Get the user from the temp store using sessionId
+    if (
+      !incomeDetails ||
+      typeof incomeDetails.Primary_Monthly_Income !== 'number' ||
+      typeof incomeDetails.Additional_Monthly_Income !== 'number'
+    ) {
+      return res.status(400).json({ message: 'Income details are required and must be complete' });
+    }
+
+    if (
+      !assetDetails ||
+      typeof assetDetails.Gold_Asset_amount !== 'number' ||
+      typeof assetDetails.Gold_Asset_App_Value !== 'number' ||
+      typeof assetDetails.Land_Asset_Area !== 'number' ||
+      typeof assetDetails.Land_Asset_App_Value !== 'number'
+    ) {
+      return res.status(400).json({ message: 'Asset details are required and must be complete' });
+    }
+
+    if (
+      !Array.isArray(existingloanDetails) ||
+      existingloanDetails.length === 0 ||
+      !existingloanDetails.every(loan =>
+        typeof loan.Monthly_Payment === 'number' &&
+        typeof loan.Lender_Name === 'string' &&
+        typeof loan.Loan_Type === 'string' &&
+        typeof loan.Total_Loan_Amount === 'number' &&
+        typeof loan.Loan_Years === 'number' &&
+        typeof loan.Interest_Rate === 'number'
+      )
+    ) {
+      return res.status(400).json({ message: 'All loan details must be complete and in array format' });
+    }
+
     const user = tempUsers.get(sessionId);
     if (!user) {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    // Make sure the form 1 data exists
     if (!user.personalDetails || !user.professionalDetails || !user.passwordDetails) {
       return res.status(400).json({ message: 'Incomplete form 1 data. Start over.' });
     }
 
-    // Store FinancialDetails in the user object
+    const enrichedLoanDetails = existingloanDetails.map(loan => {
+      const principal = loan.Total_Loan_Amount;
+      const rate = loan.Interest_Rate / 100;
+      const time = loan.Loan_Years;
+      const compoundedAmount = principal * Math.pow((1 + rate), time);
+
+      return {
+        ...loan,
+        Remaining_Loan_Amount: compoundedAmount
+      };
+    });
+
     user.FinancialDetails = {
-      incomeDetails: {
-        Primary_Monthly_Income,
-        Additional_Monthly_Income,
-      },
-      assetDetails: {
-        Gold_Asset_amount,
-        Gold_Asset_App_Value,
-        Land_Asset_Area,
-        Land_Asset_App_Value,
-      },
-      existingloanDetails: {
-        Monthly_Payment,
-        Total_Loan_Amount
-      },
+      incomeDetails,
+      assetDetails,
+      existingloanDetails: enrichedLoanDetails,
     };
 
-    // Save updated user to tempUsers
     tempUsers.set(sessionId, user);
-    res.status(200).json({ message: 'Form 2 saved' });
 
+    res.status(200).json({ message: 'Form 2 saved' });
   } catch (err) {
     console.error('Signup2 Error:', err);
     res.status(500).json({ message: 'Server error!' });

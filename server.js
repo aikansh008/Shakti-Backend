@@ -4,14 +4,41 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const Message = require('./Models/community/messages');
-const googleauth = require('./Controllers/googleauth');
-const completeSignupRoute = require('./Routes/complete_signup');
-const completeSignupRoute2= require('./Routes/complete_signup2');
-const completeSignupRoute3= require('./Routes/complete_signup3');
-const requireAuth = require('./Middlewares/authMiddleware')
 
-// Load environment variables
+// Models
+const Message = require('./Models/community/messages');
+const BusinessDetailSignup = require('./Models/User/BusinessDetailSignup');
+
+// Controllers
+const googleauth = require('./Controllers/googleauth');
+const scrapeData = require('./Controllers/microinvestments');
+const filterLoansRouter = require('./Controllers/filter');
+const PrivateschemesRouter = require('./Controllers/private_schemes');
+const recentMessagesRoute = require('./Controllers/messageduser');
+
+// Routes
+const completeSignupRoute = require('./Routes/complete_signup');
+const completeSignupRoute2 = require('./Routes/complete_signup2');
+const completeSignupRoute3 = require('./Routes/complete_signup3');
+const requireAuth = require('./Middlewares/authMiddleware');
+const authRoutes = require('./Routes/authRoutes');
+const searchRoutes = require('./Routes/searchRoutes');
+const videoRoutes = require('./Routes/videosRoutes');
+const pdfRoutes = require('./Routes/pdfsearchbuisness');
+const communityRoutes = require('./Routes/communityAuthRoutes');
+const indexRoutes = require('./Routes/index');
+const getuser = require('./Routes/user');
+const budgetRout = require('./BudgetPrediction/futureprediction');
+const profit = require('./Routes/percentage');
+const taskRoutes = require('./Routes/taskRoutes');
+const { Server } = require('socket.io');
+const  sixmonths= require('./BudgetPrediction/lastsixmonth')
+const financialRoutes = require('./Controllers/getallloans');
+const loanspayment= require('./Controllers/monthlyloanpayment')
+const lasttwomonthexpands = require('./Controllers/lasttwomonthexpands')
+const userprofile= require('./Routes/userProfile')
+const shaktidetails= require('./Routes/shaktiProfile')
+
 dotenv.config();
 
 // Express app setup
@@ -24,7 +51,8 @@ app.use(express.static('public'));
 const server = http.createServer(app);
 
 // Socket.IO setup
-const { Server } = require('socket.io');
+
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -32,12 +60,13 @@ const io = new Server(server, {
   }
 });
 
-// Connect to MongoDB
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
-}).then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+})
+.then(() => console.log('✅ MongoDB connected'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Socket.IO authentication middleware
 io.use((socket, next) => {
@@ -58,8 +87,12 @@ io.on('connection', (socket) => {
   console.log(`🔌 User connected: ${socket.user.userId}`);
   socket.join(socket.user.userId);
 
-  // Handle private message
+  // 📩 Handle private message
   socket.on('private-message', async ({ toUserId, message }) => {
+    if (!toUserId || !message) {
+      return socket.emit('error', { message: 'Missing toUserId or message' });
+    }
+
     try {
       const msg = await Message.create({
         senderId: socket.user.userId,
@@ -67,7 +100,18 @@ io.on('connection', (socket) => {
         message
       });
 
+      // Emit to receiver
       io.to(toUserId).emit('private-message', {
+        _id: msg._id,
+        from: socket.user.userId,
+        to: toUserId,
+        message: msg.message,
+        timestamp: msg.timestamp,
+        seen: msg.seen
+      });
+
+      // Optionally emit to sender for immediate UI update
+      socket.emit('private-message', {
         _id: msg._id,
         from: socket.user.userId,
         to: toUserId,
@@ -77,10 +121,11 @@ io.on('connection', (socket) => {
       });
     } catch (error) {
       console.error('❌ Failed to send private message:', error);
+      socket.emit('error', { message: 'Failed to send message' });
     }
   });
 
-  // Handle message seen
+  // ✅ Message seen
   socket.on('message-seen', async ({ fromUserId }) => {
     try {
       await Message.updateMany(
@@ -96,7 +141,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle typing status
+  // ✍️ Typing indicators
   socket.on('typing', ({ toUserId }) => {
     io.to(toUserId).emit('typing', {
       fromUserId: socket.user.userId
@@ -109,54 +154,65 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Disconnect
+  // 📜 Fetch old messages
+  socket.on('fetch-messages', async ({ userId }) => {
+    try {
+      const msgs = await Message.find({
+        $or: [
+          { senderId: socket.user.userId, receiverId: userId },
+          { senderId: userId, receiverId: socket.user.userId }
+        ]
+      }).sort({ timestamp: 1 }); // Sort oldest to newest
+
+      socket.emit('old-messages', msgs);
+    } catch (error) {
+      console.error('❌ Failed to fetch messages:', error);
+      socket.emit('error', { message: 'Failed to fetch messages' });
+    }
+  });
+
+  // ❌ Disconnect
   socket.on('disconnect', () => {
     console.log(`❌ User disconnected: ${socket.user.userId}`);
   });
 });
 
-// ---------------- API ROUTES ----------------
+// Routes
 app.use('/googleauth', googleauth);
 app.use('/complete', completeSignupRoute);
-app.use('/complete2',completeSignupRoute2);
-app.use('/complete3',completeSignupRoute3);
-const filterLoansRouter = require('./Controllers/filter');
-const PrivateschemesRouter = require('./Controllers/private_schemes');
-const scrapeData = require('./Controllers/microinvestments');
-const authRoutes = require('./Routes/authRoutes');
-const budgetRoutes = require('./Routes/predictRoutes');
-const searchRoutes = require('./Routes/searchRoutes');
-const videoRoutes = require('./Routes/videosRoutes');
-const pdfRoutes = require('./Routes/pdfsearchbuisness');
-const communityRoutes = require('./Routes/communityAuthRoutes');
-const indexRoutes = require('./Routes/index');
-const BusinessDetailSignup = require('./Models/User/BusinessDetailSignup');
-const getuser = require('./Routes/user');
-
-// API Routes
+app.use('/complete2', completeSignupRoute2);
+app.use('/complete3', completeSignupRoute3);
 app.use('/auth', authRoutes);
 app.use('/filter-loans', filterLoansRouter);
 app.use('/private-schemes', PrivateschemesRouter);
-app.use('/predict-budget', budgetRoutes);
 app.use('/search', searchRoutes);
 app.use('/videos', videoRoutes);
 app.use('/pdfsearch', pdfRoutes);
 app.use('/community', communityRoutes);
 app.use('/', indexRoutes);
-app.use('/user' ,getuser);
+app.use('/user', getuser);
+app.use('/api', budgetRout);
+app.use('/', profit);
+app.use('/tasks', taskRoutes);
+app.use('/api/recentmessages', recentMessagesRoute);
+app.use('/api', sixmonths);
+app.use('/api/financial', financialRoutes);
+app.use('/api' ,loanspayment),
+app.use('/api',lasttwomonthexpands),
+app.use('/profile' ,userprofile);
+app.use('/shakti',shaktidetails);
 
-// Scraping route
+
+
+// Scraper API
 app.post('/scrape', requireAuth, async (req, res) => {
   try {
-    const user = req.user;
+    const user = req.userId;
     const business = await BusinessDetailSignup.findOne({ user });
 
-    if (!business || !business.ideaDetails?.Buisness_City) {
-      return res.status(400).json({ error: 'Missing business city in user profile' });
-    }
-
-    const location = business.ideaDetails.Buisness_City;
+    const location = "Ghaziabad"; // static or use business?.ideaDetails?.Buisness_City
     const targetUrl = `https://www.justdial.com/${location}/Peer-To-Peer-Investment-Service-Providers/nct-11948937?stype=category_list&redirect=301`;
+
     const data = await scrapeData(targetUrl);
 
     const response = data.map(item => ({

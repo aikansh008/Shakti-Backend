@@ -14,7 +14,7 @@ const { predicthealthBudget } = require('../Models/Budget/healthcare');
 const { predictlaundryBudget } = require('../Models/Budget/laundary');
 const { predictbeautyBudget } = require('../Models/Budget/beauty');
 const { predictmanufacturingBudget }= require('../Models/Budget/manufacturing');
-const { predictDairyBudget } = require('../Models/Budget/dairybudget')
+const { predictfdairyBudget } = require('../Models/Budget/dairybudget');
 
 // Helper function
 async function calculateProfits(userId) {
@@ -25,14 +25,14 @@ async function calculateProfits(userId) {
   let last3MonthProfits = [];
 
   if (!records || records.length < 3) {
-    last3MonthProfits = [1, 2, 3]; // Placeholder values
+    last3MonthProfits = [0, 0, 0]; // Set to zeros if not enough data
   } else {
     last3MonthProfits = records.map((r) => {
       const { sellingPrice, costPrice, expenses } = r;
       return sellingPrice - costPrice -
-        expenses.Operational_Expenses -
-        expenses.Administrative_Expenses -
-        expenses.Optional_Expenses;
+        (expenses?.Operational_Expenses || 0) -
+        (expenses?.Administrative_Expenses || 0) -
+        (expenses?.Optional_Expenses || 0);
     });
   }
 
@@ -44,15 +44,14 @@ async function calculateProfits(userId) {
     currentProfit = cost?.financialPlan?.Estimated_Startup_Cost || 0;
   } else {
     const { sellingPrice, costPrice, expenses } = latestRecord;
-    currentProfit =
-      sellingPrice - costPrice -
-      expenses.Operational_Expenses -
-      expenses.Administrative_Expenses -
-      expenses.Optional_Expenses;
+    currentProfit = sellingPrice - costPrice -
+      (expenses?.Operational_Expenses || 0) -
+      (expenses?.Administrative_Expenses || 0) -
+      (expenses?.Optional_Expenses || 0);
   }
 
   const lastFourMonths = [...last3MonthProfits.slice(-3), currentProfit];
-  return { lastFourMonths, currentProfit };
+  return { lastFourMonths, lastMonthProfit: last3MonthProfits.at(-1) || 0, currentProfit };
 }
 
 // Common handler
@@ -64,12 +63,15 @@ async function handleBudgetPrediction(req, res, businessType, predictFunction) {
   }
 
   try {
-    const { lastFourMonths, currentProfit } = await calculateProfits(userId);
+    const { lastFourMonths, lastMonthProfit, currentProfit } = await calculateProfits(userId);
+
     const budgetPrediction = await predictFunction(lastFourMonths, currentProfit);
 
     res.json({
       businessType,
       budgetPrediction,
+      lastMonthProfit,
+      currentMonthProfit: currentProfit,
       lastFourMonths
     });
   } catch (err) {
@@ -80,21 +82,12 @@ async function handleBudgetPrediction(req, res, businessType, predictFunction) {
 
 // Routes
 router.post('/restaurant', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'restaurant', predictrestaurantBudget));
-
 router.post('/retails', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'retail', predictretailBudget));
-
 router.post('/travel', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'travel', predicttravelBudget));
-
 router.post('/health', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'healthcare', predicthealthBudget));
-
 router.post('/laundry', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'laundry', predictlaundryBudget));
-
 router.post('/beauty', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'beauty', predictbeautyBudget));
-
 router.post('/manufacturing', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'manufacturing', predictmanufacturingBudget));
-
-router.post('/dairy', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'dairy', predictDairyBudget));
-
-
+router.post('/dairy', requireAuth, (req, res) => handleBudgetPrediction(req, res, 'manufacturing', predictfdairyBudget));
 
 module.exports = router;

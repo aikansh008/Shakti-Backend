@@ -40,7 +40,7 @@ router.get('/', requireAuth, async (req, res) => {
       !businessData ||
       !businessData.ideaDetails ||
       !businessData.ideaDetails.Business_Sector ||
-      !businessData.ideaDetails.Business_Location
+      !businessData.ideaDetails.Buisness_Location
     ) {
       return res.status(404).json({ error: 'Business details not found for this user' });
     }
