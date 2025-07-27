@@ -57,7 +57,7 @@ const messageSchema = new mongoose.Schema({
   editedAt: {
     type: Date
   },
-  originalMessage: String, // Store original message for edit history
+  originalMessage: String,     
   deleted: {
     type: Boolean,
     default: false
