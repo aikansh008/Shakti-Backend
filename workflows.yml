@@ -3,11 +3,7 @@ name: Deploy Node App to EC2
 on:
   push:
     branches:
-<<<<<<< HEAD
-      - main  # or master
-=======
       - main
->>>>>>> origin/aikansh
 
 jobs:
   deploy:
@@ -18,15 +14,6 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Log in to Docker Hub
-<<<<<<< HEAD
-      run: echo "${{ secrets.Aikansh@008 }}" | docker login -u "${{ secrets.aikanshtiwari }}" --password-stdin
-
-    - name: Build Docker image
-      run: docker build -t ${{ secrets.aikanshtiwari }}/shakti-backend .
-
-    - name: Push Docker image to Docker Hub
-      run: docker push ${{ secrets.aikanshtiwari }}/shakti-backend
-=======
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     - name: Build Docker image
@@ -34,25 +21,15 @@ jobs:
 
     - name: Push Docker image to Docker Hub
       run: docker push ${{ secrets.DOCKER_USERNAME }}/shakti-backend
->>>>>>> origin/aikansh
 
     - name: SSH and Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ec2-user
-<<<<<<< HEAD
-        key: ${{ secrets.ssh -i "ShktiNxt2.pem" ec2-user@ec2-3-109-55-17.ap-south-1.compute.amazonaws.com }}
-        script: |
-          docker pull ${{ secrets.aikanshtiwari }}/shakti-backend
-          docker stop app || true
-          docker rm app || true
-          docker run -d --name app -p 80:5000 --env-file .env ${{ secrets.DOCKER_USERNAME }}/shakti-backend
-=======
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           docker pull ${{ secrets.DOCKER_USERNAME }}/shakti-backend
           docker stop app || true
           docker rm app || true
           docker run -d --name app -p 80:5000 ${{ secrets.DOCKER_USERNAME }}/shakti-backend
->>>>>>> origin/aikansh
