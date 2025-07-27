@@ -10,17 +10,33 @@
     #chatBox { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-top: 10px; }
     .typing { font-style: italic; color: gray; margin-top: 5px; }
     .seen-status { font-size: 12px; color: green; text-align: right; }
+    .feature-section { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    .feature-section h4 { margin-top: 0; color: #333; }
+    .reaction-btn { padding: 5px; margin: 2px; border: none; background: #f0f0f0; border-radius: 3px; cursor: pointer; }
+    .reaction-btn:hover { background: #e0e0e0; }
+    .error { color: red; margin: 5px 0; }
+    .success { color: green; margin: 5px 0; }
   </style>
 </head>
 <body>
   <h2>🟢 One-to-One Chat App</h2>
 
-  <label>JWT Token:</label><br />
-  <input type="text" id="jwt" size="80" placeholder="Enter your JWT token" />
-  <button onclick="connectSocket()">Connect</button>
-  <div id="connectionStatus"></div>
+  <div class="feature-section">
+    <h4>Server Configuration</h4>
+    <label>Server URL:</label><br />
+    <input type="text" id="serverUrl" value="http://localhost:5000" size="50" placeholder="Enter server URL" />
+  </div>
 
-  <div style="margin-top: 20px;">
+  <div class="feature-section">
+    <h4>Connection</h4>
+    <label>JWT Token:</label><br />
+    <input type="text" id="jwt" size="80" placeholder="Enter your JWT token" />
+    <button onclick="connectSocket()">Connect</button>
+    <div id="connectionStatus"></div>
+  </div>
+
+  <div class="feature-section">
+    <h4>Send Message</h4>
     <label>Recipient User ID:</label><br />
     <input type="text" id="recipientId" size="50" placeholder="Enter recipient user ID" /><br />
 
@@ -29,20 +45,68 @@
     <button onclick="sendMessage()">Send</button>
   </div>
 
+  <!-- File Upload Section -->
+  <div class="feature-section">
+    <h4>File Upload</h4>
+    <input type="file" id="imageInput" accept="image/*" />
+    <button onclick="uploadImage()">Upload Image</button>
+    <div id="imageUploadStatus"></div>
+    <br><br>
+    <input type="file" id="fileInput" />
+    <button onclick="uploadFile()">Upload File</button>
+    <div id="fileUploadStatus"></div>
+  </div>
+
+  <!-- Message Actions -->
+  <div class="feature-section">
+    <h4>Message Actions</h4>
+    <input type="text" id="messageIdInput" placeholder="Message ID" />
+    <input type="text" id="editMessageInput" placeholder="New message content" />
+    <button onclick="editMessage()">Edit Message</button>
+    <button onclick="deleteMessage('me')">Delete for Me</button>
+    <button onclick="deleteMessage('everyone')">Delete for Everyone</button>
+    <div style="margin-top: 10px;">
+      <label>Add Reaction:</label>
+      <button class="reaction-btn" onclick="addReaction('❤️')">❤️</button>
+      <button class="reaction-btn" onclick="addReaction('👍')">👍</button>
+      <button class="reaction-btn" onclick="addReaction('😂')">😂</button>
+      <button class="reaction-btn" onclick="addReaction('😢')">😢</button>
+      <button class="reaction-btn" onclick="addReaction('😮')">😮</button>
+    </div>
+  </div>
+
+  <!-- Search Messages -->
+  <div class="feature-section">
+    <h4>Search Messages</h4>
+    <input type="text" id="searchInput" placeholder="Search messages..." />
+    <button onclick="searchMessages()">Search</button>
+  </div>
+
   <div id="chatBox"></div>
   <div class="typing" id="typingStatus"></div>
 
   <script>
     let socket;
 
+    function getServerUrl() {
+      return document.getElementById('serverUrl').value.trim();
+    }
+
     function connectSocket() {
       const token = document.getElementById('jwt').value;
+      const serverUrl = getServerUrl();
+      
       if (!token) {
         alert("Please enter a JWT token");
         return;
       }
 
-      socket = io('http://localhost:5000', {
+      if (!serverUrl) {
+        alert("Please enter server URL");
+        return;
+      }
+
+      socket = io(serverUrl, {
         auth: { token },
       });
 
@@ -58,8 +122,18 @@
 
       socket.on('private-message', (data) => {
         const chatBox = document.getElementById('chatBox');
+        let messageContent = '';
+        
+        if (data.messageType === 'image') {
+          messageContent = `<img src="${data.image.url}" alt="Image" style="max-width: 200px; max-height: 200px;" />`;
+        } else if (data.messageType === 'file') {
+          messageContent = `<a href="${data.file.url}" download="${data.file.originalName}">${data.file.originalName}</a>`;
+        } else {
+          messageContent = data.message;
+        }
+        
         const message = `
-          <div><b>${data.from}:</b> ${data.message}</div>
+          <div><b>${data.from}:</b> ${messageContent}</div>
           <div class="seen-status">Seen</div>
         `;
         chatBox.innerHTML += message;
@@ -82,6 +156,45 @@
         const status = document.querySelector(`#seen-${messageId}`);
         if (status) status.innerText = "✅ Seen";
       });
+
+      // Enhanced socket listeners
+      socket.on('message-edited', (data) => {
+        console.log('Message edited:', data);
+        addToChat(`📝 Message edited: ${data.newMessage} (edited at ${new Date(data.editedAt).toLocaleTimeString()})`);
+      });
+
+      socket.on('message-deleted', (data) => {
+        console.log('Message deleted:', data);
+        addToChat(`🗑️ Message deleted (${data.deletedFor})`);
+      });
+
+      socket.on('reaction-added', (data) => {
+        console.log('Reaction added:', data);
+        addToChat(`${data.emoji} Reaction added to message`);
+      });
+
+      socket.on('search-results', (data) => {
+        console.log('Search results:', data);
+        addToChat(`🔍 Found ${data.results.length} messages for "${data.query}"`);
+        
+        // Display search results
+        if (data.results.length > 0) {
+          data.results.forEach(result => {
+            addToChat(`📄 Result: ${result.message} (${new Date(result.timestamp).toLocaleString()})`);
+          });
+        }
+      });
+
+      socket.on('error', (error) => {
+        console.error('Socket error:', error);
+        addToChat(`❌ Error: ${error.message}`);
+      });
+    }
+
+    function addToChat(message) {
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML += `<div style="color: #666; font-style: italic;">${message}</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function sendMessage() {
@@ -120,6 +233,202 @@
         socket.emit('typing', { toUserId });
       }
     }
+
+    function showStatus(elementId, message, isError = false) {
+      const element = document.getElementById(elementId);
+      element.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+      setTimeout(() => {
+        element.innerHTML = '';
+      }, 5000);
+    }
+
+    // File upload functions
+    async function uploadImage() {
+      const input = document.getElementById('imageInput');
+      const file = input.files[0];
+      const serverUrl = getServerUrl();
+      const token = document.getElementById('jwt').value;
+      
+      if (!file) {
+        showStatus('imageUploadStatus', 'Please select an image', true);
+        return;
+      }
+
+      if (!token) {
+        showStatus('imageUploadStatus', 'Please enter JWT token first', true);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        showStatus('imageUploadStatus', 'Uploading image...');
+        
+        const response = await fetch(`${serverUrl}/api/upload/image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          console.log('Image uploaded:', result.image);
+          showStatus('imageUploadStatus', 'Image uploaded successfully!');
+          
+          // Send image message via socket
+          if (socket && socket.connected) {
+            socket.emit('private-message', {
+              toUserId: document.getElementById('recipientId').value,
+              messageType: 'image',
+              image: result.image
+            });
+            
+            // Display in chat
+            const chatBox = document.getElementById('chatBox');
+            const selfMsg = `
+              <div style="text-align:right;">
+                <b>You:</b> <img src="${result.image.url}" alt="Image" style="max-width: 200px; max-height: 200px;" />
+                <div class="seen-status">Sent</div>
+              </div>
+            `;
+            chatBox.innerHTML += selfMsg;
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+          
+          // Clear input
+          input.value = '';
+        } else {
+          throw new Error(result.error || 'Upload failed');
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        showStatus('imageUploadStatus', `Image upload failed: ${error.message}`, true);
+      }
+    }
+
+    async function uploadFile() {
+      const input = document.getElementById('fileInput');
+      const file = input.files[0];
+      const serverUrl = getServerUrl();
+      const token = document.getElementById('jwt').value;
+      
+      if (!file) {
+        showStatus('fileUploadStatus', 'Please select a file', true);
+        return;
+      }
+
+      if (!token) {
+        showStatus('fileUploadStatus', 'Please enter JWT token first', true);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        showStatus('fileUploadStatus', 'Uploading file...');
+        
+        const response = await fetch(`${serverUrl}/api/upload/file`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          console.log('File uploaded:', result.file);
+          showStatus('fileUploadStatus', 'File uploaded successfully!');
+          
+          // Send file message via socket
+          if (socket && socket.connected) {
+            socket.emit('private-message', {
+              toUserId: document.getElementById('recipientId').value,
+              messageType: 'file',
+              file: result.file
+            });
+            
+            // Display in chat
+            const chatBox = document.getElementById('chatBox');
+            const selfMsg = `
+              <div style="text-align:right;">
+                <b>You:</b> <a href="${result.file.url}" download="${result.file.originalName}">${result.file.originalName}</a>
+                <div class="seen-status">Sent</div>
+              </div>
+            `;
+            chatBox.innerHTML += selfMsg;
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+          
+          // Clear input
+          input.value = '';
+        } else {
+          throw new Error(result.error || 'Upload failed');
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        showStatus('fileUploadStatus', `File upload failed: ${error.message}`, true);
+      }
+    }
+
+    function editMessage() {
+      const messageId = document.getElementById('messageIdInput').value;
+      const newMessage = document.getElementById('editMessageInput').value;
+      
+      if (!messageId || !newMessage) return alert('Please provide message ID and new content');
+      
+      socket.emit('edit-message', { messageId, newMessage });
+    }
+
+    function deleteMessage(deleteFor) {
+      const messageId = document.getElementById('messageIdInput').value;
+      if (!messageId) return alert('Please provide message ID');
+      
+      socket.emit('delete-message', { messageId, deleteFor });
+    }
+
+    function addReaction(emoji) {
+      const messageId = document.getElementById('messageIdInput').value;
+      if (!messageId) return alert('Please provide message ID');
+      
+      socket.emit('add-reaction', { messageId, emoji });
+    }
+
+    function searchMessages() {
+      const query = document.getElementById('searchInput').value;
+      const userId = document.getElementById('recipientId').value;
+      
+      if (!query || !userId) return alert('Please provide search query and user ID');
+      
+      socket.emit('search-messages', { userId, query });
+    }
+
+    // Allow Enter key to send message
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('messageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+      
+      document.getElementById('editMessageInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          editMessage();
+        }
+      });
+      
+      document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchMessages();
+        }
+      });
+    });
   </script>
 </body>
 </html>

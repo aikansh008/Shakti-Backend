@@ -1,4 +1,10 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+<<<<<<< HEAD
+>>>>>>> origin/master
+>>>>>>> origin/master
 const mongoose= require('mongoose');
 
 const FinancialDetailsSchema= new mongoose.Schema({
@@ -39,6 +45,16 @@ const FinancialDetailsSchema= new mongoose.Schema({
     Monthly_Payment:{
       type: Number,
       required: true
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    }
+  }
+}, {timestamps:true});
+
+module.exports= mongoose.model('FinancialDetails', FinancialDetailsSchema)
+=======
+>>>>>>> origin/master
     },
     Total_Loan_Amount:{
       type: Number,
@@ -118,3 +134,7 @@ const FinancialDetailsSchema = new mongoose.Schema({
 
 module.exports = mongoose.model('FinancialDetails', FinancialDetailsSchema);
 >>>>>>> master
+<<<<<<< HEAD
+=======
+>>>>>>> origin/master
+>>>>>>> origin/master

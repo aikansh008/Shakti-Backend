@@ -1,30 +1,6 @@
-// const mongoose = require('mongoose');
-
-// const MessageSchema = new mongoose.Schema({
-//   senderId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: true,
-//   },
-//   receiverId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: true,
-//   },
-//   message: {
-//     type: String,
-//     required: true,
-//   },
-//   timestamp: {
-//     type: Date,
-//     default: Date.now,
-//   },
-// });
-
-// module.exports = mongoose.model('Message', MessageSchema);
 const mongoose = require('mongoose');
 
-const MessageSchema = new mongoose.Schema({
+const messageSchema = new mongoose.Schema({
   senderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -37,25 +13,87 @@ const MessageSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    required: true,
+    required: function() {
+      return !this.file && !this.image;
+    }
   },
   messageType: {
     type: String,
-    enum: ['text', 'image', 'audio', 'video', 'file'],
-    default: 'text',
+    enum: ['text', 'image', 'file', 'document', 'audio', 'video'],
+    default: 'text'
   },
-  timestamp: {
-    type: Date,
-    default: Date.now,
+  file: {
+    url: String,
+    originalName: String,
+    size: Number,
+    mimeType: String,
+    cloudinaryId: String
+  },
+  image: {
+    url: String,
+    originalName: String,
+    size: Number,
+    cloudinaryId: String,
+    thumbnail: String
   },
   seen: {
     type: Boolean,
-    default: false,
+    default: false
   },
-  metadata: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {},
-  }
+  seenAt: {
+    type: Date
+  },
+  delivered: {
+    type: Boolean,
+    default: false
+  },
+  deliveredAt: {
+    type: Date
+  },
+  edited: {
+    type: Boolean,
+    default: false
+  },
+  editedAt: {
+    type: Date
+  },
+  originalMessage: String,     
+  deleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: Date,
+  deletedFor: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    deletedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  replyTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message'
+  },
+  reactions: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    emoji: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
+}, { 
+  timestamps: true 
 });
 
-module.exports = mongoose.model('Message', MessageSchema);
+// Index for better query performance
+messageSchema.index({ senderId: 1, receiverId: 1, timestamp: -1 });
+messageSchema.index({ receiverId: 1, seen: 1 });
+
+module.exports = mongoose.model('Message', messageSchema);

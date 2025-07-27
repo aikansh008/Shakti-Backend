@@ -4,22 +4,16 @@ const PersonalDetailsSchema = new mongoose.Schema({
   personalDetails: {
     Full_Name: {
       type: String,
+      required: true
     },
-    Email:{
+    Email: {
       type: String,
-      unique:true,
+      required: true
     },
     Preferred_Languages: {
-      type: [String],
-     
-    },
-    age :{
-      type: Number,
-    },
-     gender :{
-       type: String,
-    },
-   
+      type: String,
+      required: true
+    }
   },
 
   professionalDetails: {
@@ -39,7 +33,9 @@ const PersonalDetailsSchema = new mongoose.Schema({
       required: true
     }
   }
-
 }, { timestamps: true });
 
-module.exports = mongoose.model('PersonalDetails', PersonalDetailsSchema);
+// ✅ Prevent OverwriteModelError:
+const PersonalDetails = mongoose.models.PersonalDetails || mongoose.model('PersonalDetails', PersonalDetailsSchema);
+
+module.exports = PersonalDetails;

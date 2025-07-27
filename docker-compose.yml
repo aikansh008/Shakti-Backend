@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: node_app
+    ports:
+      - "5000:5000"  # Maps host:container
+    env_file:
+      - .env         # Loads environment variables
+    restart: unless-stopped
+    volumes:
+      - .:/app       # Optional: syncs local files with container

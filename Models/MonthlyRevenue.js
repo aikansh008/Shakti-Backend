@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> origin/master
 const MonthlyDataSchema = new mongoose.Schema({
   month: String, // e.g., "Jan 2024"
   revenue: {
@@ -8,6 +13,10 @@ const MonthlyDataSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+<<<<<<< HEAD
+=======
+>>>>>>> origin/master
+>>>>>>> origin/master
 const MonthlyRevenueSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -35,6 +44,15 @@ const MonthlyRevenueSchema = new mongoose.Schema({
       type: Number,
       required: true,
     },
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+  }
+}, { timestamps: true });
+
+// 3rd argument 'monthlyrevenues' ensures this creates a separate collection
+=======
+>>>>>>> origin/master
   },
   monthlyRevenue: {
     type: [MonthlyDataSchema],
@@ -51,4 +69,8 @@ const MonthlyRevenueSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+<<<<<<< HEAD
+=======
+>>>>>>> origin/master
+>>>>>>> origin/master
 module.exports = mongoose.model('MonthlyRevenue', MonthlyRevenueSchema, 'monthlyrevenues');
