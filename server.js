@@ -42,6 +42,8 @@ const fileUploadRoutes = require('./Routes/fileuploadmessage');
 const businessinsights = require('./Controllers/budgetai');
 const expensesinsights= require('./Controllers/expensesai');
 const progressinsights = require('./Controllers/progressai');
+const flowchart =require('./Controllers/flowchart')
+const multer = require('./Controllers/pdfupload_fetch');
 
 
 dotenv.config();
@@ -392,15 +394,17 @@ app.use('/api/upload', fileUploadRoutes);
 app.use('/api', businessinsights);
 app.use('/api', expensesinsights);
 app.use('/api', progressinsights);
+app.use('/api', flowchart);
+app.use('/api', multer);
 
 
 // Scraper API
 app.post('/scrape', requireAuth, async (req, res) => {
   try {
-    const user = req.userId;
-    const business = await BusinessDetailSignup.findOne({ user });
+    const userId = req.userId;
 
-    const location = "Ghaziabad"; // static or use business?.ideaDetails?.Buisness_City
+    const business = await BusinessDetailSignup.findOne({userId});
+    const location = business?.ideaDetails?.Business_City || "Mumbai";
     const targetUrl = `https://www.justdial.com/${location}/Peer-To-Peer-Investment-Service-Providers/nct-11948937?stype=category_list&redirect=301`;
 
     const data = await scrapeData(targetUrl);
@@ -417,6 +421,7 @@ app.post('/scrape', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Scraping failed', details: err.message });
   }
 });
+
 
 // Start server
 const PORT = process.env.PORT || 5000;

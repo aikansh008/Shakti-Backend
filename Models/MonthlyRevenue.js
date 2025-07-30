@@ -1,27 +1,23 @@
 const mongoose = require('mongoose');
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> origin/master
 const MonthlyDataSchema = new mongoose.Schema({
-  month: String, // e.g., "Jan 2024"
+  month: {
+    type: String,
+    required: true,
+  },
   revenue: {
     type: Number,
-    default: 0
+    required: true,
+    default: 0,
   }
 }, { _id: false });
 
-<<<<<<< HEAD
-=======
->>>>>>> origin/master
->>>>>>> origin/master
+// Main schema
 const MonthlyRevenueSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'PersonalDetails',
-    required: true
+    required: true,
   },
   sellingPrice: {
     type: Number,
@@ -44,15 +40,6 @@ const MonthlyRevenueSchema = new mongoose.Schema({
       type: Number,
       required: true,
     },
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-  }
-}, { timestamps: true });
-
-// 3rd argument 'monthlyrevenues' ensures this creates a separate collection
-=======
->>>>>>> origin/master
   },
   monthlyRevenue: {
     type: [MonthlyDataSchema],
@@ -69,8 +56,5 @@ const MonthlyRevenueSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-<<<<<<< HEAD
-=======
->>>>>>> origin/master
->>>>>>> origin/master
-module.exports = mongoose.model('MonthlyRevenue', MonthlyRevenueSchema, 'monthlyrevenues');
+// ✅ Prevent OverwriteModelError:
+module.exports = mongoose.models.MonthlyRevenue || mongoose.model('MonthlyRevenue', MonthlyRevenueSchema);

@@ -9,7 +9,7 @@ const PersonalDetails = require("../Models/PersonalDetailSignup");
 const requireAuth = require("../Middlewares/authMiddleware");
 require("dotenv").config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY7);
 
 router.get("/progress/insights", requireAuth, async (req, res) => {
   try {

@@ -4,16 +4,52 @@ const moment = require("moment");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Budget = require("../BudgetPrediction/Budgetschema");
 const requireAuth = require("../Middlewares/authMiddleware");
+const InsightsCache = require("../Models/caching/businessinsightscache");
 require("dotenv").config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY1);
+
+// Dummy fallback insight
+const dummyInsights = {
+  "point1": "A consistent decline in profits over the observed period indicates potential issues in market demand or internal operations.",
+  "point2": "Examine any recent operational changes, such as staffing, process adjustments, or cost structures, that may have negatively impacted profitability.",
+  "point3": "Review customer feedback and satisfaction metrics to detect potential dissatisfaction leading to decreased sales.",
+  "point4": "Investigate external market conditions, including competitor activities or economic trends, that could be affecting revenue.",
+  "point5": "Analyze sales channel performance to identify if any specific channel underperformed during the period.",
+  "point6": "Check for increasing operational costs, such as raw material prices, rent, or logistics, that may be eating into profits.",
+  "point7": "Evaluate marketing effectiveness—poor targeting or reduced visibility might be causing lower customer engagement.",
+  "point8": "Assess product or service relevance—there may be a need for innovation or diversification to regain market interest.",
+  "point9": "Look into inventory management—excess stock or stockouts can hurt profitability and customer satisfaction.",
+  "point10": "Implement regular performance reviews and build an early warning system to detect declining profit trends before they escalate."
+};
 
 router.get("/business/insights", requireAuth, async (req, res) => {
-  try {
-    const userId = req.userId;
-    const budgets = await Budget.find({ userId });
+  const userId = req.userId;
+  const today = moment().format("YYYY-MM-DD");
 
+  try {
+    const existingCache = await InsightsCache.findOne({ userId, date: today });
+
+    // If already cached and valid
+    if (existingCache && existingCache.status === 200||cached.status===201 ) {
+      return res.status(200).json(existingCache.insights);
+    }
+
+    // If failed previously, retry only if more than 24 hours passed
+    if (existingCache && existingCache.status !== 200 || existingCache.status !== 201) {
+      const lastUpdated = moment(existingCache.updatedAt || existingCache.createdAt);
+      if (moment().diff(lastUpdated, "hours") < 24) {
+        return res.status(200).json(dummyInsights);
+      }
+    }
+
+    const budgets = await Budget.find({ userId });
     if (!budgets || budgets.length === 0) {
+      await InsightsCache.findOneAndUpdate(
+        { userId, date: today },
+        { status: 404 },
+        { upsert: true }
+      );
       return res.status(404).json({ error: "No budget data found." });
     }
 
@@ -50,7 +86,6 @@ Expenditures for the last 2 months:
 ${expenditureText}
 
 Respond only in this strict JSON format with no extra text in 10 points:
-Required JSON Format:
 {
   "point1": "First insight here",
   "point2": "Second insight here",
@@ -66,24 +101,56 @@ Required JSON Format:
 `.trim();
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const rawText = response.text();
 
-    let insights;
     try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const rawText = response.text();
       const cleaned = rawText.replace(/```json|```/g, '').trim();
-      insights = JSON.parse(cleaned);
-    } catch (err) {
-      console.error("Parsing error:", err);
-      return res.status(500).json({ error: "Failed to parse AI response." });
-    }
+      const insights = JSON.parse(cleaned);
 
-    res.json(insights);
+      // Save good result
+      await InsightsCache.findOneAndUpdate(
+        { userId, date: today },
+        { insights, status: 200 },
+        { upsert: true }
+      );
+
+      return res.status(200).json(insights);
+    } catch (parseError) {
+      // Save dummy with failed status
+      await InsightsCache.findOneAndUpdate(
+        { userId, date: today },
+        { insights: dummyInsights, status: "failed" }, // don't update time
+        { upsert: true }
+      );
+
+      return res.status(200).json(dummyInsights);
+    }
 
   } catch (error) {
     console.error("Gemini error:", error.message || error);
-    res.status(500).json({ error: "Gemini AI error" });
+
+    const isRateLimit = error.message?.includes("429") || error.message?.includes("503");
+
+    if (isRateLimit) {
+      // Save dummy with failed status
+      await InsightsCache.findOneAndUpdate(
+        { userId, date: today },
+        { insights: dummyInsights, status: "failed" },
+        { upsert: true }
+      );
+      return res.status(200).json(dummyInsights);
+    }
+
+    // Generic error
+    await InsightsCache.findOneAndUpdate(
+      { userId, date: today },
+      { status: 500 },
+      { upsert: true }
+    );
+
+    return res.status(500).json({ error: "Gemini AI error" });
   }
 });
 

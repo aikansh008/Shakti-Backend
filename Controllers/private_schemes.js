@@ -7,7 +7,7 @@ const PersonalDetails= require('../Models/User/PersonalDetailSignup');
 const FinancialDetails = require('../Models/User/FinancialDetailSignup');
 require('dotenv').config();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY3;
 const SERP_API_KEY = process.env.GOOGLE_API_KEY;
 
 router.post('/',  requireAuth ,async (req, res) => {

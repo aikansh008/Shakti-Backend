@@ -1,4 +1,4 @@
-name: Deploy Node App to EC2
+name: Deploy Node App to EC2 (New)
 
 on:
   push:
@@ -17,19 +17,19 @@ jobs:
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     - name: Build Docker image
-      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/shakti-backend .
+      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/shakti-backend:latest .
 
     - name: Push Docker image to Docker Hub
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/shakti-backend
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/shakti-backend:latest
 
-    - name: SSH and Deploy on EC2
+    - name: SSH into EC2 and deploy container
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ec2-user
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/shakti-backend
+          docker pull ${{ secrets.DOCKER_USERNAME }}/shakti-backend:latest
           docker stop app || true
           docker rm app || true
-          docker run -d --name app -p 80:5000 ${{ secrets.DOCKER_USERNAME }}/shakti-backend
+          docker run -d --name app -p 80:5000 ${{ secrets.DOCKER_USERNAME }}/shakti-backend:latest
