@@ -1,10 +1,24 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const LoanSchemeCacheSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  date: { type: String, required: true }, // YYYY-MM-DD
-  schemes: { type: Array, required: false },
-  status: { type: Number, default: 200 }, // 200 OK, 500 error etc.
+const InsightsCacheSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User',
+    unique: true, // Optional: one cache per user
+  },
+  data: {
+    type: Array,
+    required: true,
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now,
+  },
+  success: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-module.exports = mongoose.model("LoanSchemeCache", LoanSchemeCacheSchema);
+module.exports = mongoose.model('loanscheme', InsightsCacheSchema);

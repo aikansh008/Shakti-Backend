@@ -1,30 +1,25 @@
-FROM node:18
+FROM node:18-slim
+
+# Set environment to production
+ENV NODE_ENV=production
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy only package files for install step
 COPY package*.json ./
 
-# Install dependencies (builds bcrypt for Linux)
-RUN npm ci --only=production && npm cache clean --force
+# Install production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy application code (excluding node_modules via .dockerignore)
+# Copy the rest of the application code
 COPY . .
-COPY .env ./
-# Create non-root user
-RUN groupadd --gid 1001 --system nodejs && \
-    useradd --uid 1001 --system --gid nodejs --shell /bin/bash --create-home nextjs
 
-# Change ownership
-RUN chown -R nextjs:nodejs /app
-
-# Switch to non-root user
-USER nextjs
+# Use built-in non-root user (lighter & secure)
+USER node
 
 # Expose port
 EXPOSE 5000
 
-# Start application
-CMD ["node", "server.js"] 
-
+# Start the application
+CMD ["node", "server.js"]

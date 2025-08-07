@@ -42,8 +42,7 @@ You are a smart and helpful assistant that recommends realistic next steps for a
   {
     "Suggestion": "Step to improve business",
     "description": "Why this step is appropriate for the user's current condition"
-  },
-  ...
+  }
 ]
 `;
 
@@ -71,14 +70,13 @@ You are a smart and helpful assistant that recommends realistic next steps for a
       },
     });
 
-    if (result.fallback) {
-      console.warn('Gemini failed — using cached result.');
-    }
-
-    res.json({ recommendedLoans: result.data });
+    res.json({
+      fromDummy: result.status === 0,
+      recommendedLoans: result.data,
+    });
   } catch (err) {
-    console.error('Error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('Flowchart Error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

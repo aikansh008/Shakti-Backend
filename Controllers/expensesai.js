@@ -2,26 +2,29 @@ const express = require("express");
 const router = express.Router();
 const moment = require("moment");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const PersonalDetails = require("../Models/PersonalDetailSignup");
-const Budget = require("../BudgetPrediction/Budgetschema");
 const requireAuth = require("../Middlewares/authMiddleware");
+
+const Budget = require("../BudgetPrediction/Budgetschema");
+const PersonalDetails = require("../Models/PersonalDetailSignup");
 const InsightsCache = require("../Models/caching/budgetinsights");
+
 require("dotenv").config();
 
+// Gemini setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY2);
 
-// Dummy fallback response
+// Fallback dummy insights
 const dummyInsights = {
-  "point1": { "title": "Monitor Essential Expenses", "description": "Focus on reducing spending in non-essential areas." },
-  "point2": { "title": "Avoid Unnecessary Loans", "description": "If growth is slowing, explore saving adjustments before taking loans." },
-  "point3": { "title": "Optimize Subscriptions", "description": "Review monthly subscriptions to eliminate unused services." },
-  "point4": { "title": "Increase Emergency Savings", "description": "Set aside at least 10% of income for emergencies if budget allows." },
-  "point5": { "title": "Consider Mutual Funds", "description": "Invest surplus in low-risk mutual funds or SIPs." },
-  "point6": { "title": "Track Seasonal Spikes", "description": "Plan for seasonal increases in spending like school or festival months." },
-  "point7": { "title": "Prioritize High-Interest Debts", "description": "Pay off high-interest loans quickly to free up monthly cash flow." },
-  "point8": { "title": "Use Cashback Credit Cards", "description": "If spending is consistent, use reward-based cards wisely." },
-  "point9": { "title": "Automate Bill Payments", "description": "Avoid late fees by automating recurring monthly bills." },
-  "point10": { "title": "Reinvest Savings", "description": "Profit months should include re-investment into fixed deposits or PPF." }
+  point1: { title: "Track Essential Costs", description: "Prioritize tracking necessary spending like food, rent, and transport." },
+  point2: { title: "Cut Discretionary Spending", description: "Limit luxury and entertainment expenses in tight months." },
+  point3: { title: "Build an Emergency Fund", description: "Set aside some money for emergencies using profits from better months." },
+  point4: { title: "Avoid New Loans", description: "If profit is dropping, avoid acquiring new debt and focus on stability." },
+  point5: { title: "Refinance If Possible", description: "Check if any existing loans can be refinanced to reduce monthly outgo." },
+  point6: { title: "Invest in Recurring Deposits", description: "In profit months, park extra cash in RDs or short-term FDs." },
+  point7: { title: "Use Budgeting Tools", description: "Apps or spreadsheets can help better track trends and savings." },
+  point8: { title: "Avoid Impulse Buys", description: "Plan purchases with a checklist to avoid overspending." },
+  point9: { title: "Monitor Monthly Changes", description: "Keep an eye on sectors showing major variance and investigate." },
+  point10: { title: "Seek Expert Advice", description: "If losses continue, consult a financial planner or credit advisor." }
 };
 
 router.post("/budget/insights", requireAuth, async (req, res) => {
@@ -50,7 +53,6 @@ router.post("/budget/insights", requireAuth, async (req, res) => {
     }
 
     const currentBudget = budgets[budgets.length - 1];
-
     const userDetails = await PersonalDetails.findById(userId, {
       "personalDetails.Preferred_Languages": 1,
     });
@@ -80,16 +82,9 @@ Respond only in this strict JSON format with no extra text:
 {
   "point1": { "title": "First insight", "description": "..." },
   "point2": { "title": "Second insight", "description": "..." },
-  "point3": { "title": "Third insight", "description": "..." },
-  "point4": { "title": "Fourth insight", "description": "..." },
-  "point5": { "title": "Fifth insight", "description": "..." },
-  "point6": { "title": "Sixth insight", "description": "..." },
-  "point7": { "title": "Seventh insight", "description": "..." },
-  "point8": { "title": "Eighth insight", "description": "..." },
-  "point9": { "title": "Ninth insight", "description": "..." },
+  ...
   "point10": { "title": "Tenth insight", "description": "..." }
-}
-`.trim();
+}`.trim();
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
@@ -110,25 +105,33 @@ Respond only in this strict JSON format with no extra text:
     } catch (parseError) {
       console.error("Parsing error:", parseError.message || parseError);
 
-      await InsightsCache.findOneAndUpdate(
-        { userId, date: today },
-        { insights: dummyInsights, status: 201 },
-        { upsert: true, timestamps: false }
-      );
+      if (!cached) {
+        await InsightsCache.create({
+          userId,
+          date: today,
+          insights: dummyInsights,
+          status: 201
+        });
+      }
 
-      return res.status(200).json(dummyInsights);
+      return res.status(200).json(cached?.insights || dummyInsights);
     }
 
   } catch (error) {
     console.error("Gemini error:", error.message || error);
 
-    await InsightsCache.findOneAndUpdate(
-      { userId, date: today },
-      { insights: dummyInsights, status: 201 },
-      { upsert: true, timestamps: false }
-    );
+    const cached = await InsightsCache.findOne({ userId, date: today });
 
-    return res.status(200).json(dummyInsights);
+    if (!cached) {
+      await InsightsCache.create({
+        userId,
+        date: today,
+        insights: dummyInsights,
+        status: 201
+      });
+    }
+
+    return res.status(200).json(cached?.insights || dummyInsights);
   }
 });
 

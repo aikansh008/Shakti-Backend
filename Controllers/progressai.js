@@ -2,24 +2,43 @@ const express = require("express");
 const router = express.Router();
 const moment = require("moment");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Redis = require("ioredis");
 const Budget = require("../BudgetPrediction/Budgetschema");
 const Task = require("../Models/Task/task");
-const Post = require("../Models/community/PostSchema"); 
+const Post = require("../Models/community/PostSchema");
 const PersonalDetails = require("../Models/PersonalDetailSignup");
 const requireAuth = require("../Middlewares/authMiddleware");
 require("dotenv").config();
 
+// Initialize Redis
+const redis = new Redis({
+  host: '172.17.0.1',
+  port: 6379
+});
+
+// Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY7);
 
 router.get("/progress/insights", requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
+    const cacheKey = `insights:${userId}`;
 
+    // ✅ Check Redis cache
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log("⏪ Serving from cache");
+      return res.json(JSON.parse(cached));
+    }
+
+    // 🔄 Fetch user language
     const userDetails = await PersonalDetails.findById(userId, {
-          "personalDetails.Preferred_Languages": 1,
-        });
-        const language = userDetails?.personalDetails?.Preferred_Languages || "English";
-        const budgets = await Budget.find({ userId }).sort({ createdAt: 1 });
+      "personalDetails.Preferred_Languages": 1,
+    });
+    const language = userDetails?.personalDetails?.Preferred_Languages || "English";
+
+    // 🔄 Fetch budget data
+    const budgets = await Budget.find({ userId }).sort({ createdAt: 1 });
     if (!budgets || budgets.length === 0) {
       return res.status(404).json({ error: "No budget data found." });
     }
@@ -28,14 +47,13 @@ router.get("/progress/insights", requireAuth, async (req, res) => {
     const allProfits = currentBudget.profits || [];
     const last6Profits = allProfits.slice(-6);
 
-    // Format profit data
     const currentMonth = moment();
     const profitData = last6Profits.map((profit, index) => {
       const month = moment(currentMonth).subtract(last6Profits.length - 1 - index, "months");
       return `${month.format("MMMM YYYY")}: ₹${profit}`;
     }).join("\n");
 
-    // ✅ Task check for today
+    // 🔄 Fetch today's tasks
     const startOfDay = moment().startOf('day').toDate();
     const endOfDay = moment().endOf('day').toDate();
     const todayTasks = await Task.find({
@@ -47,12 +65,12 @@ router.get("/progress/insights", requireAuth, async (req, res) => {
       ? `You have ${todayTasks.length} task(s) scheduled for today.`
       : `You have no tasks scheduled for today.`;
 
-    // ✅ Recent post check (last 3 days)
+    // 🔄 Fetch community posts in last 3 days
     const threeDaysAgo = moment().subtract(3, 'days').toDate();
     const recentPosts = await Post.find({ createdAt: { $gte: threeDaysAgo } });
     const postSummary = recentPosts.length > 0
       ? `There are ${recentPosts.length} new post(s) in the community in the last 3 days.`
-      : `No recent posts in the community.`
+      : `No recent posts in the community.`;
 
     // 🔥 AI Prompt
     const prompt = `
@@ -126,6 +144,9 @@ Respond only in this strict JSON format with no extra text:
       console.error("Parsing error:", err);
       return res.status(500).json({ error: "Failed to parse AI response." });
     }
+
+    // ✅ Cache in Redis for 24 hours (86400 seconds)
+    await redis.set(cacheKey, JSON.stringify(insights), 'EX', 86400);
 
     res.json(insights);
 

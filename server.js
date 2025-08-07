@@ -1,3 +1,4 @@
+
 const express = require('express');
 const http = require('http');
 const dotenv = require('dotenv');
@@ -21,6 +22,8 @@ const completeSignupRoute = require('./Routes/complete_signup');
 const completeSignupRoute2 = require('./Routes/complete_signup2');
 const completeSignupRoute3 = require('./Routes/complete_signup3');
 const requireAuth = require('./Middlewares/authMiddleware');
+const forgetpassword = require('./Controllers/forget_password');
+const resetpassword = require('./Controllers/reset_password');
 const authRoutes = require('./Routes/authRoutes');
 const searchRoutes = require('./Routes/searchRoutes');
 const videoRoutes = require('./Routes/videosRoutes');
@@ -368,10 +371,12 @@ io.on('connection', (socket) => {
 
 // Routes
 app.use('/googleauth', googleauth);
-app.use('/complete', completeSignupRoute);
-app.use('/complete2', completeSignupRoute2);
-app.use('/complete3', completeSignupRoute3);
+// app.use('/complete', completeSignupRoute);
+// app.use('/complete2', completeSignupRoute2);
+// app.use('/complete3', completeSignupRoute3);
 app.use('/auth', authRoutes);
+app.use('/auth',forgetpassword);
+app.use('/auth',resetpassword);
 app.use('/filter-loans', filterLoansRouter);
 app.use('/private-schemes', PrivateschemesRouter);
 app.use('/search', searchRoutes);

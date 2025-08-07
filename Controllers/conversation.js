@@ -9,7 +9,6 @@ const startConversation = async (req, res) => {
   const senderId = req.userId;
 
   try {
-    // Check if a conversation already exists
     let conversation = await Conversation.findOne({
       members: { $all: [senderId, receiverId] }
     });

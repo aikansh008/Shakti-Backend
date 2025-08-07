@@ -1,12 +1,23 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const insightsCacheSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, required: true },
-  date: { type: String, required: true }, // formatted date: 'YYYY-MM-DD'
-  status: { type: Number, required: true }, // e.g., 200, 500
-  insights: { type: mongoose.Schema.Types.Mixed }, // JSON from Gemini
-}, { timestamps: true });
+const InsightsCacheSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  status: {
+    type: String, // Changed from Number to String to support "failed"
+    enum: ['success', 'failed'], // optional, for stricter control
+    default: 'success',
+  },
+  data: {
+    type: mongoose.Schema.Types.Mixed, // to allow any object or null
+    required: false,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-insightsCacheSchema.index({ userId: 1, date: 1 }, { unique: true });
-
-module.exports = mongoose.model("InsightsCache", insightsCacheSchema);
+module.exports = mongoose.model('InsightsCache', InsightsCacheSchema);
