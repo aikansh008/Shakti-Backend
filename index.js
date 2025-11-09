@@ -8,7 +8,6 @@ const git = simpleGit();
 const makeCommit = (n) => {
     if (n === 0) return git.push();
 
-    // Use Math.random() to generate random weeks (0–54) and days (0–6)
     const x = Math.floor(Math.random() * 55); // 0 to 54 weeks
     const y = Math.floor(Math.random() * 7);  // 0 to 6 days
 
